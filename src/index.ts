@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { authMiddleware, AuthEnv, AuthContext } from "./middleware/auth";
 import { getDb, Env as DbEnv } from "./db";
 import { calculateMBTI } from "./lib/scoring";
@@ -12,6 +13,21 @@ type Bindings = {
 type Variables = AuthContext;
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// CORS middleware for API routes (allows requests from custom domain)
+app.use(
+  "/api/*",
+  cors({
+    origin: [
+      "https://type.va-n.com",
+      "https://mbti-app.qmpro.workers.dev",
+      "http://localhost:8787",
+    ],
+    credentials: true,
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 app.get("/api/health", (c) => {
   return c.json({ status: "ok", message: "Health Check" });
