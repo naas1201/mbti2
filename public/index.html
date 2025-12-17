@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MBTI - Discover Who You Really Are</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
     <style>
         @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
@@ -49,30 +48,41 @@
             max-width: 400px;
             width: 90%;
         }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-black text-white min-h-screen">
-    <div x-data="mbtiApp()" x-init="init()" class="container mx-auto px-6 py-12 max-w-4xl">
+    <div class="container mx-auto px-6 py-12 max-w-4xl">
         <!-- Header -->
         <header class="flex justify-between items-center mb-20">
             <div class="text-sm font-medium tracking-wider">MBTI</div>
-            <div>
+            <div id="auth-container">
+                <div id="auth-loading" class="text-sm font-medium text-white/60">
+                    Loading authentication...
+                </div>
                 <button
-                    @click="signIn()"
-                    x-show="!isAuthenticated && !authLoading"
-                    class="text-sm font-medium px-6 py-2 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
+                    id="signin-btn"
+                    class="hidden text-sm font-medium px-6 py-2 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
                 >
                     Sign in to Save
                 </button>
-                <div x-show="authLoading" class="text-sm font-medium text-white/60">
-                    Loading...
+                <div id="auth-error" class="hidden text-sm font-medium text-red-400">
+                    Authentication error
                 </div>
-                <div x-show="isAuthenticated" class="flex items-center space-x-4">
+                <div id="user-info" class="hidden flex items-center space-x-4">
                     <span class="text-sm font-medium text-white/60">
-                        Welcome, <span x-text="userFirstName || 'User'"></span>
+                        Welcome, <span id="user-name">User</span>
                     </span>
                     <button
-                        @click="signOut()"
+                        id="signout-btn"
                         class="text-sm font-medium px-4 py-1 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
                     >
                         Sign Out
@@ -82,23 +92,19 @@
         </header>
 
         <!-- Authentication Error Modal -->
-        <div
-            x-show="showAuthError"
-            class="clerk-modal-backdrop"
-            @click.self="showAuthError = false"
-        >
+        <div id="auth-error-modal" class="hidden clerk-modal-backdrop">
             <div class="clerk-modal-content">
                 <h3 class="text-xl font-bold mb-4">Authentication Error</h3>
-                <p class="mb-6" x-text="authErrorMessage"></p>
+                <p id="auth-error-message" class="mb-6"></p>
                 <div class="flex justify-end space-x-4">
                     <button
-                        @click="showAuthError = false"
+                        id="close-error-btn"
                         class="px-4 py-2 border border-gray-300 hover:bg-gray-100 transition-all duration-200"
                     >
                         Close
                     </button>
                     <button
-                        @click="retryClerkInitialization()"
+                        id="retry-auth-btn"
                         class="px-4 py-2 bg-black text-white hover:bg-gray-800 transition-all duration-200"
                     >
                         Retry
@@ -108,7 +114,7 @@
         </div>
 
         <!-- Hero Section -->
-        <section x-show="!testStarted && !testCompleted" class="text-center mb-32">
+        <section id="hero-section" class="text-center mb-32">
             <h1 class="text-7xl md:text-8xl font-light mb-8 leading-none tracking-tight">
                 Discover who<br />you really are.
             </h1>
@@ -116,64 +122,50 @@
                 20 questions. 5 minutes. A deeper understanding of yourself.
             </p>
             <button
-                @click="startTest()"
+                id="start-test-btn"
                 class="bg-white text-black px-12 py-4 text-lg font-medium hover:bg-white/90 transition-all duration-200"
             >
                 Begin Test
             </button>
-            <div x-show="!isAuthenticated" class="mt-8 text-white/40 text-sm">
+            <div id="signin-prompt" class="mt-8 text-white/40 text-sm">
                 <p>Sign in to save your results and track your progress over time.</p>
             </div>
         </section>
 
         <!-- Test Section -->
-        <section x-show="testStarted && !testCompleted" class="min-h-[60vh]">
+        <section id="test-section" class="hidden min-h-[60vh]">
             <!-- Progress Bar -->
             <div class="mb-12">
                 <div class="flex justify-between text-sm text-white/40 mb-2">
-                    <span>Question <span x-text="currentQuestion + 1"></span> of 20</span>
-                    <span x-text="Math.round(((currentQuestion + 1) / 20) * 100) + '%'"></span>
+                    <span>Question <span id="current-question">1</span> of 20</span>
+                    <span id="progress-percent">5%</span>
                 </div>
                 <div class="w-full h-1 bg-white/10">
                     <div
+                        id="progress-bar"
                         class="h-full bg-white transition-all duration-300"
-                        :style="`width: ${((currentQuestion + 1) / 20) * 100}%`"
+                        style="width: 5%"
                     ></div>
                 </div>
             </div>
 
             <!-- Question -->
-            <div x-show="questions.length > 0" class="mb-16">
-                <template x-for="(question, index) in questions" :key="question.id">
-                    <div
-                        x-show="currentQuestion === index"
-                        x-transition:enter="fade-enter fade-enter-active"
-                        x-transition:enter-end="fade-enter-to"
-                    >
-                        <h2 class="text-4xl md:text-5xl font-light mb-16 leading-tight" x-text="question.text"></h2>
+            <div id="question-container" class="mb-16">
+                <h2 id="question-text" class="text-4xl md:text-5xl font-light mb-16 leading-tight">
+                    Loading question...
+                </h2>
 
-                        <!-- Answer Scale -->
-                        <div class="space-y-4">
-                            <template x-for="value in [1, 2, 3, 4, 5]" :key="value">
-                                <button
-                                    @click="selectAnswer(value)"
-                                    class="w-full py-6 px-8 text-left border transition-all duration-200 text-lg font-light"
-                                    :class="answers[currentQuestion] === value ? 'border-white bg-white text-black' : 'border-white/20 hover:border-white/40'"
-                                >
-                                    <span x-text="getAnswerLabel(value)"></span>
-                                </button>
-                            </template>
-                        </div>
-                    </div>
-                </template>
+                <!-- Answer Scale -->
+                <div class="space-y-4" id="answer-scale">
+                    <!-- Answers will be populated by JavaScript -->
+                </div>
             </div>
 
             <!-- Navigation -->
             <div class="flex justify-between mt-12">
                 <button
-                    @click="previousQuestion()"
-                    x-show="currentQuestion > 0"
-                    class="px-8 py-3 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
+                    id="prev-question-btn"
+                    class="hidden px-8 py-3 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
                 >
                     Previous
                 </button>
@@ -182,39 +174,40 @@
         </section>
 
         <!-- Results Section -->
-        <section x-show="testCompleted" class="text-center min-h-[60vh] flex flex-col justify-center">
-            <div x-show="loading" class="text-2xl text-white/40 font-light">
+        <section id="results-section" class="hidden text-center min-h-[60vh] flex flex-col justify-center">
+            <div id="results-loading" class="text-2xl text-white/40 font-light">
                 Analyzing your responses...
             </div>
 
-            <div x-show="!loading && result">
-                <h2 class="text-8xl md:text-9xl font-light mb-8 tracking-tight" x-text="result"></h2>
+            <div id="results-success" class="hidden">
+                <h2 id="mbti-result" class="text-8xl md:text-9xl font-light mb-8 tracking-tight">INFJ</h2>
                 <p class="text-2xl text-white/60 mb-12 font-light">
                     Your Personality Type
                 </p>
-                <p class="text-lg text-white/40 mb-16 max-w-2xl mx-auto" x-text="resultMessage"></p>
+                <p id="result-message" class="text-lg text-white/40 mb-16 max-w-2xl mx-auto">
+                    Your personality description will appear here.
+                </p>
 
                 <div class="space-x-4">
                     <button
-                        @click="resetTest()"
+                        id="retake-test-btn"
                         class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
                     >
                         Take Again
                     </button>
                     <button
-                        @click="shareResults()"
-                        x-show="isAuthenticated"
-                        class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
+                        id="share-results-btn"
+                        class="hidden border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
                     >
                         Share Results
                     </button>
                 </div>
             </div>
 
-            <div x-show="!loading && error" class="text-center">
-                <p class="text-2xl text-red-400 mb-8" x-text="error"></p>
+            <div id="results-error" class="hidden text-center">
+                <p id="error-message" class="text-2xl text-red-400 mb-8">Error loading results</p>
                 <button
-                    @click="resetTest()"
+                    id="retry-test-btn"
                     class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
                 >
                     Try Again
@@ -233,277 +226,425 @@
         // Clerk Configuration
         const CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA";
         let clerk = null;
-        let clerkInitialized = false;
+        let isAuthenticated = false;
+        let userName = null;
 
-        // Initialize Clerk with retry logic
-        async function initializeClerk(maxRetries = 3, retryDelay = 1000) {
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    console.log(`Initializing Clerk (attempt ${attempt}/${maxRetries})...`);
+        // Test State
+        let testStarted = false;
+        let testCompleted = false;
+        let currentQuestion = 0;
+        let answers = new Array(20).fill(null);
+        let questions = [];
 
-                    // Check if Clerk is available
-                    if (typeof window.Clerk === 'undefined') {
-                        throw new Error('Clerk SDK not loaded. Check CDN connection.');
-                    }
+        // DOM Elements
+        const authLoadingEl = document.getElementById('auth-loading');
+        const signinBtn = document.getElementById('signin-btn');
+        const authErrorEl = document.getElementById('auth-error');
+        const userInfoEl = document.getElementById('user-info');
+        const userNameEl = document.getElementById('user-name');
+        const signoutBtn = document.getElementById('signout-btn');
+        
+        const authErrorModal = document.getElementById('auth-error-modal');
+        const authErrorMessageEl = document.getElementById('auth-error-message');
+        const closeErrorBtn = document.getElementById('close-error-btn');
+        const retryAuthBtn = document.getElementById('retry-auth-btn');
+        
+        const heroSection = document.getElementById('hero-section');
+        const startTestBtn = document.getElementById('start-test-btn');
+        const signinPrompt = document.getElementById('signin-prompt');
+        
+        const testSection = document.getElementById('test-section');
+        const currentQuestionEl = document.getElementById('current-question');
+        const progressPercentEl = document.getElementById('progress-percent');
+        const progressBarEl = document.getElementById('progress-bar');
+        const questionTextEl = document.getElementById('question-text');
+        const answerScaleEl = document.getElementById('answer-scale');
+        const prevQuestionBtn = document.getElementById('prev-question-btn');
+        
+        const resultsSection = document.getElementById('results-section');
+        const resultsLoadingEl = document.getElementById('results-loading');
+        const resultsSuccessEl = document.getElementById('results-success');
+        const mbtiResultEl = document.getElementById('mbti-result');
+        const resultMessageEl = document.getElementById('result-message');
+        const retakeTestBtn = document.getElementById('retake-test-btn');
+        const shareResultsBtn = document.getElementById('share-results-btn');
+        const resultsErrorEl = document.getElementById('results-error');
+        const errorMessageEl = document.getElementById('error-message');
+        const retryTestBtn = document.getElementById('retry-test-btn');
 
-                    // Create Clerk instance
-                    clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
-
-                    // Load Clerk with configuration
-                    await clerk.load({
-                        standardBrowser: true,
-                        appearance: {
-                            elements: {
-                                formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
-                            }
-                        }
-                    });
-
-                    console.log('Clerk initialized successfully');
-                    clerkInitialized = true;
-
-                    // Listen for auth state changes
-                    clerk.addListener((state) => {
-                        console.log('Auth state changed:', state);
-                        Alpine.store('auth').updateAuthState(clerk);
-                    });
-
-                    // Update auth state
-                    Alpine.store('auth').updateAuthState(clerk);
-
-                    return; // Success, exit retry loop
-
-                } catch (error) {
-                    console.error(`Clerk initialization failed (attempt ${attempt}/${maxRetries}):`, error);
-
-                    if (attempt === maxRetries) {
-                        // Last attempt failed
-                        Alpine.store('auth').setAuthError(`Failed to initialize authentication after ${maxRetries} attempts: ${error.message}`);
-                        return;
-                    }
-
-                    // Wait before retrying
-                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+        // Initialize Clerk
+        async function initializeClerk() {
+            try {
+                console.log('Initializing Clerk...');
+                
+                // Check if Clerk SDK is loaded
+                if (typeof window.Clerk === 'undefined') {
+                    throw new Error('Clerk SDK not loaded. Please check your internet connection and refresh the page.');
                 }
+
+                // Create Clerk instance
+                clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
+
+                // Load Clerk with configuration
+                await clerk.load({
+                    standardBrowser: true,
+                    appearance: {
+                        elements: {
+                            formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
+                        }
+                    }
+                });
+
+                console.log('Clerk initialized successfully');
+                
+                // Update UI based on auth state
+                updateAuthUI();
+                
+                // Listen for auth state changes
+                clerk.addListener((state) => {
+                    console.log('Auth state changed:', state);
+                    updateAuthUI();
+                });
+
+            } catch (error) {
+                console.error('Failed to initialize Clerk:', error);
+                showAuthError(`Authentication service error: ${error.message}. Please refresh the page.`);
             }
         }
 
-        // Alpine.js store for authentication
-        document.addEventListener('alpine:init', () => {
-            Alpine.store('auth', {
-                isAuthenticated: false,
-                authLoading: true,
-                userFirstName: null,
-                showAuthError: false,
-                authErrorMessage: '',
+        // Update authentication UI
+        function updateAuthUI() {
+            authLoadingEl.classList.add('hidden');
+            
+            if (!clerk) {
+                signinBtn.classList.remove('hidden');
+                return;
+            }
 
-                updateAuthState(clerkInstance) {
-                    this.authLoading = false;
-                    if (clerkInstance && clerkInstance.user) {
-                        this.isAuthenticated = true;
-                        this.userFirstName = clerkInstance.user.firstName || null;
-                    } else {
-                        this.isAuthenticated = false;
-                        this.userFirstName = null;
-                    }
-                },
+            if (clerk.user) {
+                // User is signed in
+                isAuthenticated = true;
+                userName = clerk.user.firstName || clerk.user.username || 'User';
+                userNameEl.textContent = userName;
+                
+                signinBtn.classList.add('hidden');
+                authErrorEl.classList.add('hidden');
+                userInfoEl.classList.remove('hidden');
+                signinPrompt.classList.add('hidden');
+                shareResultsBtn.classList.remove('hidden');
+                
+                console.log('User signed in:', userName);
+            } else {
+                // User is signed out
+                isAuthenticated = false;
+                userName = null;
+                
+                signinBtn.classList.remove('hidden');
+                userInfoEl.classList.add('hidden');
+                signinPrompt.classList.remove('hidden');
+                shareResultsBtn.classList.add('hidden');
+                
+                console.log('User signed out');
+            }
+        }
 
-                setAuthError(message) {
-                    this.showAuthError = true;
-                    this.authErrorMessage = message;
-                    this.authLoading = false;
-                },
+        // Show authentication error
+        function showAuthError(message) {
+            authLoadingEl.classList.add('hidden');
+            signinBtn.classList.add('hidden');
+            userInfoEl.classList.add('hidden');
+            authErrorEl.classList.remove('hidden');
+            authErrorEl.textContent = message;
+        }
 
-                clearAuthError() {
-                    this.showAuthError = false;
-                    this.authErrorMessage = '';
+        // Show authentication error modal
+        function showAuthErrorModal(message) {
+            authErrorMessageEl.textContent = message;
+            authErrorModal.classList.remove('hidden');
+        }
+
+        // Hide authentication error modal
+        function hideAuthErrorModal() {
+            authErrorModal.classList.add('hidden');
+        }
+
+        // Sign in function
+        async function signIn() {
+            if (!clerk) {
+                showAuthErrorModal('Authentication service not ready. Please refresh the page.');
+                return;
+            }
+
+            try {
+                console.log('Opening sign-in modal...');
+                await clerk.openSignIn({
+                    afterSignInUrl: window.location.href,
+                    afterSignUpUrl: window.location.href,
+                });
+            } catch (error) {
+                console.error('Sign in failed:', error);
+                showAuthErrorModal(`Sign in failed: ${error.message}`);
+            }
+        }
+
+        // Sign out function
+        async function signOut() {
+            if (!clerk) return;
+
+            try {
+                await clerk.signOut();
+                console.log('Signed out successfully');
+            } catch (error) {
+                console.error('Sign out failed:', error);
+                showAuthErrorModal(`Sign out failed: ${error.message}`);
+            }
+        }
+
+        // Load questions from API
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/api/questions');
+                if (!response.ok) {
+                    throw new Error(`Failed to load questions: ${response.status}`);
                 }
-            });
+                questions = await response.json();
+                console.log(`Loaded ${questions.length} questions`);
+            } catch (error) {
+                console.error('Error loading questions:', error);
+                showError('Failed to load questions. Please refresh the page.');
+            }
+        }
+
+        // Start test
+        function startTest() {
+            testStarted = true;
+            testCompleted = false;
+            currentQuestion = 0;
+            answers = new Array(20).fill(null);
+            
+            heroSection.classList.add('hidden');
+            testSection.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            
+            updateQuestion();
+        }
+
+        // Update current question display
+        function updateQuestion() {
+            if (questions.length === 0 || currentQuestion >= questions.length) {
+                return;
+            }
+
+            const question = questions[currentQuestion];
+            questionTextEl.textContent = question.text;
+            currentQuestionEl.textContent = currentQuestion + 1;
+            
+            const progress = ((currentQuestion + 1) / 20) * 100;
+            progressPercentEl.textContent = Math.round(progress) + '%';
+            progressBarEl.style.width = progress + '%';
+            
+            // Show/hide previous button
+            if (currentQuestion > 0) {
+                prevQuestionBtn.classList.remove('hidden');
+            } else {
+                prevQuestionBtn.classList.add('hidden');
+            }
+            
+            // Update answer scale
+            updateAnswerScale();
+        }
+
+        // Update answer scale
+        function updateAnswerScale() {
+            answerScaleEl.innerHTML = '';
+            
+            const answerLabels = {
+                1: 'Strongly Disagree',
+                2: 'Disagree',
+                3: 'Neutral',
+                4: 'Agree',
+                5: 'Strongly Agree'
+            };
+            
+            for (let value = 1; value <= 5; value++) {
+                const button = document.createElement('button');
+                button.className = 'w-full py-6 px-8 text-left border transition-all duration-200 text-lg font-light';
+                
+                if (answers[currentQuestion] === value) {
+                    button.classList.add('border-white', 'bg-white', 'text-black');
+                } else {
+                    button.classList.add('border-white/20', 'hover:border-white/40');
+                }
+                
+                button.textContent = answerLabels[value];
+                button.addEventListener('click', () => selectAnswer(value));
+                
+                answerScaleEl.appendChild(button);
+            }
+        }
+
+        // Select answer
+        function selectAnswer(value) {
+            answers[currentQuestion] = value;
+            console.log(`Question ${currentQuestion + 1}: Selected ${value}`);
+            
+            // Update UI
+            updateAnswerScale();
+            
+            // Auto-advance to next question if not last
+            if (currentQuestion < 19) {
+                setTimeout(() => {
+                    currentQuestion++;
+                    updateQuestion();
+                }, 300);
+            } else {
+                // Last question, submit test
+                submitTest();
+            }
+        }
+
+        // Previous question
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                updateQuestion();
+            }
+        }
+
+        // Submit test
+        async function submitTest() {
+            testSection.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            resultsLoadingEl.classList.remove('hidden');
+            resultsSuccessEl.classList.add('hidden');
+            resultsErrorEl.classList.add('hidden');
+            
+            try {
+                const requestBody = {
+                    answers: answers,
+                    userId: clerk?.user?.id || null
+                };
+                
+                const response = await fetch('/api/submit-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Test submission failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Show results
+                resultsLoadingEl.classList.add('hidden');
+                resultsSuccessEl.classList.remove('hidden');
+                
+                mbtiResultEl.textContent = data.result || 'INFJ';
+                resultMessageEl.textContent = data.message || 'Your personality description will appear here.';
+                
+                testCompleted = true;
+                console.log('Test submitted successfully:', data);
+                
+            } catch (error) {
+                console.error('Error submitting test:', error);
+                
+                resultsLoadingEl.classList.add('hidden');
+                resultsErrorEl.classList.remove('hidden');
+                errorMessageEl.textContent = 'Failed to submit test. Please try again.';
+            }
+        }
+
+        // Reset test
+        function resetTest() {
+            testStarted = false;
+            testCompleted = false;
+            currentQuestion = 0;
+            answers = new Array(20).fill(null);
+            
+            heroSection.classList.remove('hidden');
+            testSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            
+            console.log('Test reset');
+        }
+
+        // Share results
+        async function shareResults() {
+            if (!isAuthenticated) {
+                showAuthErrorModal('Please sign in to share your results.');
+                return;
+            }
+
+            try {
+                // In a real app, this would save to user's profile
+                alert('Results saved to your profile!');
+            } catch (error) {
+                console.error('Error sharing results:', error);
+                showAuthErrorModal('Failed to save results. Please try again.');
+            }
+        }
+
+        // Show error
+        function showError(message) {
+            heroSection.classList.add('hidden');
+            testSection.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            resultsLoadingEl.classList.add('hidden');
+            resultsSuccessEl.classList.add('hidden');
+            resultsErrorEl.classList.remove('hidden');
+            errorMessageEl.textContent = message;
+        }
+
+        // Event Listeners
+        signinBtn.addEventListener('click', signIn);
+        signoutBtn.addEventListener('click', signOut);
+        closeErrorBtn.addEventListener('click', hideAuthErrorModal);
+        retryAuthBtn.addEventListener('click', () => {
+            hideAuthErrorModal();
+            authLoadingEl.classList.remove('hidden');
+            signinBtn.classList.add('hidden');
+            authErrorEl.classList.add('hidden');
+            userInfoEl.classList.add('hidden');
+            initializeClerk();
+        });
+        startTestBtn.addEventListener('click', startTest);
+        prevQuestionBtn.addEventListener('click', previousQuestion);
+        retakeTestBtn.addEventListener('click', resetTest);
+        shareResultsBtn.addEventListener('click', shareResults);
+        retryTestBtn.addEventListener('click', () => {
+            resetTest();
+            startTest();
         });
 
-        // Alpine.js app
-        function mbtiApp() {
-            return {
-                // Auth state from store
-                ...Alpine.store('auth'),
+        // Close modal when clicking outside
+        authErrorModal.addEventListener('click', (e) => {
+            if (e.target === authErrorModal) {
+                hideAuthErrorModal();
+            }
+        });
 
-                // Test state
-                testStarted: false,
-                testCompleted: false,
-                currentQuestion: 0,
-                answers: Array(20).fill(null),
-                questions: [],
-                result: null,
-                resultMessage: '',
-                loading: false,
-                error: null,
-
-                // Initialize
-                async init() {
-                    // Initialize Clerk
-                    await initializeClerk();
-
-                    // Load questions
-                    this.loadQuestions();
-                },
-
-                // Load questions from API
-                async loadQuestions() {
-                    try {
-                        const response = await fetch('/api/questions');
-                        if (!response.ok) {
-                            throw new Error(`Failed to load questions: ${response.status}`);
-                        }
-                        this.questions = await response.json();
-                    } catch (error) {
-                        console.error('Error loading questions:', error);
-                        this.error = 'Failed to load questions. Please refresh the page.';
-                    }
-                },
-
-                // Start test
-                startTest() {
-                    this.testStarted = true;
-                    this.testCompleted = false;
-                    this.currentQuestion = 0;
-                    this.answers = Array(20).fill(null);
-                    this.result = null;
-                    this.resultMessage = '';
-                    this.error = null;
-                },
-
-                // Select answer
-                selectAnswer(value) {
-                    this.answers[this.currentQuestion] = value;
-                    
-                    // Auto-advance to next question if not last
-                    if (this.currentQuestion < 19) {
-                        setTimeout(() => {
-                            this.currentQuestion++;
-                        }, 300);
-                    } else {
-                        // Last question, submit test
-                        this.submitTest();
-                    }
-                },
-
-                // Previous question
-                previousQuestion() {
-                    if (this.currentQuestion > 0) {
-                        this.currentQuestion--;
-                    }
-                },
-
-                // Submit test
-                async submitTest() {
-                    this.loading = true;
-                    this.error = null;
-
-                    try {
-                        const response = await fetch('/api/submit-test', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                answers: this.answers,
-                                userId: clerk?.user?.id || null
-                            })
-                        });
-
-                        if (!response.ok) {
-                            throw new Error(`Test submission failed: ${response.status}`);
-                        }
-
-                        const data = await response.json();
-                        this.result = data.result;
-                        this.resultMessage = data.message;
-                        this.testCompleted = true;
-                    } catch (error) {
-                        console.error('Error submitting test:', error);
-                        this.error = 'Failed to submit test. Please try again.';
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-
-                // Reset test
-                resetTest() {
-                    this.testStarted = false;
-                    this.testCompleted = false;
-                    this.currentQuestion = 0;
-                    this.answers = Array(20).fill(null);
-                    this.result = null;
-                    this.resultMessage = '';
-                    this.error = null;
-                },
-
-                // Share results
-                async shareResults() {
-                    if (!this.isAuthenticated) {
-                        this.setAuthError('Please sign in to share your results.');
-                        return;
-                    }
-
-                    try {
-                        // In a real app, this would save to user's profile
-                        alert('Results saved to your profile!');
-                    } catch (error) {
-                        console.error('Error sharing results:', error);
-                        alert('Failed to save results. Please try again.');
-                    }
-                },
-
-                // Sign in
-                async signIn() {
-                    if (!clerk) {
-                        this.setAuthError('Authentication service not ready. Please refresh the page.');
-                        return;
-                    }
-
-                    try {
-                        await clerk.openSignIn({
-                            afterSignInUrl: window.location.href,
-                            afterSignUpUrl: window.location.href,
-                        });
-                    } catch (error) {
-                        console.error('Sign in failed:', error);
-                        this.setAuthError(`Sign in failed: ${error.message}`);
-                    }
-                },
-
-                // Sign out
-                async signOut() {
-                    if (!clerk) return;
-
-                    try {
-                        await clerk.signOut();
-                    } catch (error) {
-                        console.error('Sign out failed:', error);
-                        this.setAuthError(`Sign out failed: ${error.message}`);
-                    }
-                },
-
-                // Retry Clerk initialization
-                async retryClerkInitialization() {
-                    this.clearAuthError();
-                    this.authLoading = true;
-                    await initializeClerk();
-                },
-
-                // Get answer label
-                getAnswerLabel(value) {
-                    const labels = {
-                        1: 'Strongly Disagree',
-                        2: 'Disagree',
-                        3: 'Neutral',
-                        4: 'Agree',
-                        5: 'Strongly Agree'
-                    };
-                    return labels[value] || 'Unknown';
-                }
-            };
+        // Initialize application
+        async function initializeApp() {
+            console.log('Initializing MBTI application...');
+            
+            // Initialize Clerk first
+            await initializeClerk();
+            
+            // Load questions
+            await loadQuestions();
+            
+            console.log('Application initialized successfully');
         }
+
+        // Start application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, starting application...');
+            initializeApp();
+        });
     </script>
 </body>
 </html>

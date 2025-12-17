@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI Test - Clerk Authentication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .clerk-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen flex items-center justify-center">
+    <div class="text-center max-w-md p-8">
+        <h1 class="text-4xl font-bold mb-6">MBTI Personality Test</h1>
+        <p class="text-gray-400 mb-8">Discover your personality type with our assessment</p>
+
+        <div id="auth-status" class="mb-6 p-4 bg-gray-900 rounded-lg">
+            <p class="text-gray-300">Checking authentication status...</p>
+        </div>
+
+        <button
+            id="signin-btn"
+            class="w-full bg-white text-black py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition mb-4"
+            style="display: none;"
+        >
+            Sign In with Clerk
+        </button>
+
+        <button
+            id="signout-btn"
+            class="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-red-700 transition mb-4"
+            style="display: none;"
+        >
+            Sign Out
+        </button>
+
+        <div id="user-info" class="mt-6 p-4 bg-gray-800 rounded-lg" style="display: none;">
+            <p class="text-green-400 font-medium">✓ Signed in as: <span id="user-email"></span></p>
+        </div>
+
+        <div class="mt-8 text-sm text-gray-500">
+            <p>Powered by Clerk Authentication</p>
+        </div>
+    </div>
+
+    <script>
+        // Clerk configuration
+        const CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA";
+        let clerk = null;
+
+        // DOM elements
+        const authStatus = document.getElementById('auth-status');
+        const signinBtn = document.getElementById('signin-btn');
+        const signoutBtn = document.getElementById('signout-btn');
+        const userInfo = document.getElementById('user-info');
+        const userEmail = document.getElementById('user-email');
+
+        // Initialize Clerk
+        async function initializeClerk() {
+            try {
+                console.log('Initializing Clerk...');
+
+                // Check if Clerk SDK is loaded
+                if (typeof window.Clerk === 'undefined') {
+                    throw new Error('Clerk SDK not loaded. Check CDN connection.');
+                }
+
+                // Create Clerk instance
+                clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
+
+                // Load Clerk
+                await clerk.load({
+                    standardBrowser: true,
+                    appearance: {
+                        elements: {
+                            formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
+                        }
+                    }
+                });
+
+                console.log('Clerk initialized successfully');
+
+                // Update UI based on auth state
+                updateAuthUI();
+
+                // Listen for auth state changes
+                clerk.addListener((state) => {
+                    console.log('Auth state changed:', state);
+                    updateAuthUI();
+                });
+
+            } catch (error) {
+                console.error('Failed to initialize Clerk:', error);
+                authStatus.innerHTML = `
+                    <p class="text-red-400">❌ Authentication error: ${error.message}</p>
+                    <button onclick="location.reload()" class="mt-2 text-blue-400 hover:text-blue-300">
+                        Retry
+                    </button>
+                `;
+            }
+        }
+
+        // Update UI based on authentication state
+        function updateAuthUI() {
+            if (!clerk) {
+                authStatus.innerHTML = '<p class="text-yellow-400">Clerk not initialized</p>';
+                return;
+            }
+
+            if (clerk.user) {
+                // User is signed in
+                authStatus.innerHTML = '<p class="text-green-400">✓ Signed in</p>';
+                signinBtn.style.display = 'none';
+                signoutBtn.style.display = 'block';
+                userInfo.style.display = 'block';
+
+                // Display user info
+                const email = clerk.user.primaryEmailAddress?.emailAddress || 'User';
+                userEmail.textContent = email;
+
+                console.log('User signed in:', clerk.user);
+            } else {
+                // User is signed out
+                authStatus.innerHTML = '<p class="text-gray-300">Not signed in</p>';
+                signinBtn.style.display = 'block';
+                signoutBtn.style.display = 'none';
+                userInfo.style.display = 'none';
+
+                console.log('User signed out');
+            }
+        }
+
+        // Sign in function
+        async function signIn() {
+            if (!clerk) {
+                alert('Clerk not initialized. Please refresh the page.');
+                return;
+            }
+
+            try {
+                console.log('Opening sign-in modal...');
+                await clerk.openSignIn({
+                    afterSignInUrl: window.location.href,
+                    afterSignUpUrl: window.location.href,
+                });
+            } catch (error) {
+                console.error('Sign in failed:', error);
+                alert(`Sign in failed: ${error.message}`);
+            }
+        }
+
+        // Sign out function
+        async function signOut() {
+            if (!clerk) return;
+
+            try {
+                await clerk.signOut();
+                console.log('Signed out successfully');
+            } catch (error) {
+                console.error('Sign out failed:', error);
+                alert(`Sign out failed: ${error.message}`);
+            }
+        }
+
+        // Event listeners
+        signinBtn.addEventListener('click', signIn);
+        signoutBtn.addEventListener('click', signOut);
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, initializing Clerk...');
+            initializeClerk();
+        });
+
+        // Test API endpoint
+        async function testAPI() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                console.log('Health check:', data);
+            } catch (error) {
+                console.error('API test failed:', error);
+            }
+        }
+
+        // Test API on load
+        window.addEventListener('load', testAPI);
+    </script>
+</body>
+</html>
+```
+
+Now let me verify that all HTML files are properly structured by checking for any remaining issues. Let me also check if there are any other HTML files in the project:
