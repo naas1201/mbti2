@@ -9,9 +9,11 @@
 ### Authentication URLs
 | Purpose | URL | Notes |
 |---------|-----|-------|
-| **Sign In** | `https://renewed-serval-10.clerk.accounts.dev/sign-in` | Add `?redirect_url=[encoded_url]?clerk_callback=success` |
-| **Sign Up** | `https://renewed-serval-10.clerk.accounts.dev/sign-up` | Add `?redirect_url=[encoded_url]?clerk_callback=success` |
-| **Account Portal** | `https://renewed-serval-10.accounts.dev/` | User management portal |
+| **Sign In** | `https://renewed-serval-10.accounts.dev/sign-in` | Add `?redirect_url=[encoded_url]?clerk_callback=success` |
+| **Sign Up** | `https://renewed-serval-10.accounts.dev/sign-up` | Add `?redirect_url=[encoded_url]?clerk_callback=success` |
+| **Unauthorized Sign-In** | `https://renewed-serval-10.accounts.dev/unauthorized-sign-in` | For unauthorized access attempts |
+| **User Profile** | `https://renewed-serval-10.accounts.dev/user` | User management portal |
+| **Account Portal** | `https://renewed-serval-10.accounts.dev/` | Main account portal |
 
 ### API Keys
 - **Publishable Key**: `pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA`
@@ -22,14 +24,14 @@
 
 ### Redirect to Sign In
 ```javascript
-const signInUrl = `https://renewed-serval-10.clerk.accounts.dev/sign-in?redirect_url=` + 
+const signInUrl = `https://renewed-serval-10.accounts.dev/sign-in?redirect_url=` + 
                  encodeURIComponent(window.location.href + '?clerk_callback=success');
 window.location.href = signInUrl;
 ```
 
 ### Redirect to Sign Up
 ```javascript
-const signUpUrl = `https://renewed-serval-10.clerk.accounts.dev/sign-up?redirect_url=` + 
+const signUpUrl = `https://renewed-serval-10.accounts.dev/sign-up?redirect_url=` + 
                  encodeURIComponent(window.location.href + '?clerk_callback=success');
 window.location.href = signUpUrl;
 ```
@@ -61,7 +63,7 @@ if (urlParams.get('clerk_callback') === 'success') {
 # .env.example
 CLERK_PUBLISHABLE_KEY=pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA
 CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-CLERK_DOMAIN=renewed-serval-10.clerk.accounts.dev
+CLERK_DOMAIN=renewed-serval-10.accounts.dev
 ```
 
 ## Testing Commands

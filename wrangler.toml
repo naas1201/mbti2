@@ -23,6 +23,7 @@ not_found_handling = "single-page-application"  # For SPAs
 [vars]
 CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
 CLERK_SECRET_KEY = "REDACTED_SECRET"
+CLERK_DOMAIN = "renewed-serval-10.accounts.dev"
 TURSO_DATABASE_URL = "libsql://mbti-naas1201.aws-ap-northeast-1.turso.io"
 TURSO_AUTH_TOKEN = "REDACTED_SECRET"
 ENVIRONMENT = "development"

@@ -6,9 +6,11 @@
 - **Database**: Turso (libSQL) v0.5.0
 - **Authentication**: Clerk (Bulletproof Implementation)
   - **Instance**: renewed-serval-10
-  - **Domain**: renewed-serval-10.clerk.accounts.dev
-  - **Sign-In URL**: https://renewed-serval-10.clerk.accounts.dev/sign-in
-  - **Sign-Up URL**: https://renewed-serval-10.clerk.accounts.dev/sign-up
+  - **Domain**: renewed-serval-10.accounts.dev
+  - **Sign-In URL**: https://renewed-serval-10.accounts.dev/sign-in
+  - **Sign-Up URL**: https://renewed-serval-10.accounts.dev/sign-up
+  - **Unauthorized Sign-In**: https://renewed-serval-10.accounts.dev/unauthorized-sign-in
+  - **User Profile**: https://renewed-serval-10.accounts.dev/user
   - **Publishable Key**: pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA
 - **Language**: TypeScript v5.0.0
 - **Build Tool**: Wrangler v3.80.0
