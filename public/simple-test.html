@@ -4,34 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Clerk Test</title>
+    <link rel="stylesheet" href="/mbti-styles.css">
     <style>
-        * {
-            font-family: system-ui, -apple-system, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        /* Additional styles for simple test page */
         body {
-            background: #000;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
         }
         
         .container {
             max-width: 500px;
             width: 100%;
-            text-align: center;
-        }
-        
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: #fff;
         }
         
         .status {
@@ -136,8 +118,8 @@
         }
     </style>
 </head>
-<body>
-    <div class="container">
+<body class="bg-black text-white min-h-screen flex items-center justify-center">
+    <div class="container text-center">
         <h1>Simple Clerk Redirect Test</h1>
         
         <div id="status" class="status info">
