@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="en" class="dark">
-<head></head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title></title>MBTI - Discover Who You Really Are</title>
+    <title>MBTI - Discover Who You Really Are</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
     <style>
-        @</style>import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
         * {
             font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -56,7 +56,7 @@
         <!-- Header -->
         <header class="flex justify-between items-center mb-20">
             <div class="text-sm font-medium tracking-wider">MBTI</div>
-            <div></div>
+            <div>
                 <button
                     @click="signIn()"
                     x-show="!isAuthenticated && !authLoading"
@@ -122,7 +122,7 @@
                 Begin Test
             </button>
             <div x-show="!isAuthenticated" class="mt-8 text-white/40 text-sm">
-                <p></p>Sign in to save your results and track your progress over time.</p>
+                <p>Sign in to save your results and track your progress over time.</p>
             </div>
         </section>
 
@@ -131,7 +131,7 @@
             <!-- Progress Bar -->
             <div class="mb-12">
                 <div class="flex justify-between text-sm text-white/40 mb-2">
-                    <span></span>Question <span x-text="currentQuestion + 1"></span> of 20</span>
+                    <span>Question <span x-text="currentQuestion + 1"></span> of 20</span>
                     <span x-text="Math.round(((currentQuestion + 1) / 20) * 100) + '%'"></span>
                 </div>
                 <div class="w-full h-1 bg-white/10">
@@ -224,13 +224,13 @@
 
         <!-- Footer -->
         <footer class="mt-32 text-center text-white/40 text-sm font-light">
-            <p>My</p>ers-Briggs Type Indicator Assessment</p>
+            <p>Myers-Briggs Type Indicator Assessment</p>
             <p class="mt-2 text-xs">Powered by Clerk Authentication</p>
         </footer>
     </div>
 
     <script>
-        //</script> Clerk Configuration
+        // Clerk Configuration
         const CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA";
         let clerk = null;
         let clerkInitialized = false;
@@ -249,180 +249,261 @@
                     // Create Clerk instance
                     clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
 
-                    // Load Clerk
+                    // Load Clerk with configuration
                     await clerk.load({
                         standardBrowser: true,
                         appearance: {
                             elements: {
-                                rootBox: 'clerk-modal-backdrop',
-                                modalContent: 'clerk-modal-content',
                                 formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
-                                formButtonSecondary: 'border border-gray-300 hover:bg-gray-100',
-                                footerActionLink: 'text-black hover:text-gray-700',
                             }
                         }
                     });
 
                     console.log('Clerk initialized successfully');
                     clerkInitialized = true;
-                    return true;
+
+                    // Listen for auth state changes
+                    clerk.addListener((state) => {
+                        console.log('Auth state changed:', state);
+                        Alpine.store('auth').updateAuthState(clerk);
+                    });
+
+                    // Update auth state
+                    Alpine.store('auth').updateAuthState(clerk);
+
+                    return; // Success, exit retry loop
 
                 } catch (error) {
-                    console.error(`Clerk initialization failed (attempt ${attempt}):`, error);
+                    console.error(`Clerk initialization failed (attempt ${attempt}/${maxRetries}):`, error);
 
-                    if (attempt < maxRetries) {
-                        console.log(`Retrying in ${retryDelay}ms...`);
-                        await new Promise(resolve => setTimeout(resolve, retryDelay));
-                    } else {
-                        throw error;
+                    if (attempt === maxRetries) {
+                        // Last attempt failed
+                        Alpine.store('auth').setAuthError(`Failed to initialize authentication after ${maxRetries} attempts: ${error.message}`);
+                        return;
                     }
+
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
                 }
             }
-            return false;
         }
 
-        // Main application
-        function mbtiApp() {
-            return {
-                // State
-                testStarted: false,
-                testCompleted: false,
-                currentQuestion: 0,
-                answers: [],
-                questions: [],
-                result: null,
-                resultMessage: "",
-                loading: false,
-                error: null,
+        // Alpine.js store for authentication
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('auth', {
                 isAuthenticated: false,
                 authLoading: true,
                 userFirstName: null,
-                userEmail: null,
                 showAuthError: false,
-                authErrorMessage: "",
+                authErrorMessage: '',
+
+                updateAuthState(clerkInstance) {
+                    this.authLoading = false;
+                    if (clerkInstance && clerkInstance.user) {
+                        this.isAuthenticated = true;
+                        this.userFirstName = clerkInstance.user.firstName || null;
+                    } else {
+                        this.isAuthenticated = false;
+                        this.userFirstName = null;
+                    }
+                },
+
+                setAuthError(message) {
+                    this.showAuthError = true;
+                    this.authErrorMessage = message;
+                    this.authLoading = false;
+                },
+
+                clearAuthError() {
+                    this.showAuthError = false;
+                    this.authErrorMessage = '';
+                }
+            });
+        });
+
+        // Alpine.js app
+        function mbtiApp() {
+            return {
+                // Auth state from store
+                ...Alpine.store('auth'),
+
+                // Test state
+                testStarted: false,
+                testCompleted: false,
+                currentQuestion: 0,
+                answers: Array(20).fill(null),
+                questions: [],
+                result: null,
+                resultMessage: '',
+                loading: false,
+                error: null,
 
                 // Initialize
                 async init() {
-                    console.log('Initializing MBTI app...');
-
                     // Initialize Clerk
-                    try {
-                        await initializeClerk();
-                        this.setupClerkListeners();
-                        this.authLoading = false;
-                    } catch (error) {
-                        console.error('Failed to initialize Clerk after all retries:', error);
-                        this.authLoading = false;
-                        this.showAuthError = true;
-                        this.authErrorMessage = `Authentication service unavailable: ${error.message}. Please refresh the page or check your connection.`;
-                    }
+                    await initializeClerk();
 
-                    // Fetch questions
+                    // Load questions
+                    this.loadQuestions();
+                },
+
+                // Load questions from API
+                async loadQuestions() {
                     try {
-                        const response = await fetch("/api/questions");
+                        const response = await fetch('/api/questions');
                         if (!response.ok) {
                             throw new Error(`Failed to load questions: ${response.status}`);
                         }
-                        const data = await response.json();
-                        this.questions = data.questions;
-                        console.log(`Loaded ${this.questions.length} questions`);
+                        this.questions = await response.json();
                     } catch (error) {
-                        console.error("Failed to load questions:", error);
-                        this.error = "Failed to load questions. Please refresh the page.";
+                        console.error('Error loading questions:', error);
+                        this.error = 'Failed to load questions. Please refresh the page.';
                     }
                 },
 
-                // Clerk setup
-                setupClerkListeners() {
-                    if (!clerk) return;
+                // Start test
+                startTest() {
+                    this.testStarted = true;
+                    this.testCompleted = false;
+                    this.currentQuestion = 0;
+                    this.answers = Array(20).fill(null);
+                    this.result = null;
+                    this.resultMessage = '';
+                    this.error = null;
+                },
 
-                    // Listen for authentication state changes
-                    clerk.addListener((state) => {
-                        console.log('Clerk state changed:', state);
-                        this.isAuthenticated = !!state.user;
+                // Select answer
+                selectAnswer(value) {
+                    this.answers[this.currentQuestion] = value;
+                    
+                    // Auto-advance to next question if not last
+                    if (this.currentQuestion < 19) {
+                        setTimeout(() => {
+                            this.currentQuestion++;
+                        }, 300);
+                    } else {
+                        // Last question, submit test
+                        this.submitTest();
+                    }
+                },
 
-                        if (state.user) {
-                            this.userFirstName = state.user.firstName;
-                            this.userEmail = state.user.primaryEmailAddress?.emailAddress;
-                            console.log('User authenticated:', this.userFirstName, this.userEmail);
-                        } else {
-                            this.userFirstName = null;
-                            this.userEmail = null;
-                            console.log('User signed out');
+                // Previous question
+                previousQuestion() {
+                    if (this.currentQuestion > 0) {
+                        this.currentQuestion--;
+                    }
+                },
+
+                // Submit test
+                async submitTest() {
+                    this.loading = true;
+                    this.error = null;
+
+                    try {
+                        const response = await fetch('/api/submit-test', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                answers: this.answers,
+                                userId: clerk?.user?.id || null
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Test submission failed: ${response.status}`);
                         }
-                    });
 
-                    // Check initial state
-                    if (clerk.user) {
-                        this.isAuthenticated = true;
-                        this.userFirstName = clerk.user.firstName;
-                        this.userEmail = clerk.user.primaryEmailAddress?.emailAddress;
+                        const data = await response.json();
+                        this.result = data.result;
+                        this.resultMessage = data.message;
+                        this.testCompleted = true;
+                    } catch (error) {
+                        console.error('Error submitting test:', error);
+                        this.error = 'Failed to submit test. Please try again.';
+                    } finally {
+                        this.loading = false;
                     }
                 },
 
-                // Authentication methods
-                async signIn() {
-                    if (!clerk) {
-                        this.showAuthError = true;
-                        this.authErrorMessage = "Authentication service not initialized. Please refresh the page.";
+                // Reset test
+                resetTest() {
+                    this.testStarted = false;
+                    this.testCompleted = false;
+                    this.currentQuestion = 0;
+                    this.answers = Array(20).fill(null);
+                    this.result = null;
+                    this.resultMessage = '';
+                    this.error = null;
+                },
+
+                // Share results
+                async shareResults() {
+                    if (!this.isAuthenticated) {
+                        this.setAuthError('Please sign in to share your results.');
                         return;
                     }
 
                     try {
-                        console.log('Opening sign-in modal...');
-                        await clerk.openSignIn({
-                            afterSignInUrl: window.location.href,
-                            afterSignUpUrl: window.location.href,
-                            appearance: {
-                                elements: {
-                                    rootBox: 'clerk-modal-backdrop',
-                                    modalContent: 'clerk-modal-content',
-                                    formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
-                                }
-                            }
-                        });
+                        // In a real app, this would save to user's profile
+                        alert('Results saved to your profile!');
                     } catch (error) {
-                        console.error('Failed to open sign-in modal:', error);
-                        this.showAuthError = true;
-                        this.authErrorMessage = `Failed to open sign-in: ${error.message}. Please try again.`;
+                        console.error('Error sharing results:', error);
+                        alert('Failed to save results. Please try again.');
                     }
                 },
 
+                // Sign in
+                async signIn() {
+                    if (!clerk) {
+                        this.setAuthError('Authentication service not ready. Please refresh the page.');
+                        return;
+                    }
+
+                    try {
+                        await clerk.openSignIn({
+                            afterSignInUrl: window.location.href,
+                            afterSignUpUrl: window.location.href,
+                        });
+                    } catch (error) {
+                        console.error('Sign in failed:', error);
+                        this.setAuthError(`Sign in failed: ${error.message}`);
+                    }
+                },
+
+                // Sign out
                 async signOut() {
                     if (!clerk) return;
 
                     try {
                         await clerk.signOut();
-                        console.log('User signed out successfully');
                     } catch (error) {
-                        console.error('Failed to sign out:', error);
-                        this.showAuthError = true;
-                        this.authErrorMessage = `Failed to sign out: ${error.message}. Please try again.`;
+                        console.error('Sign out failed:', error);
+                        this.setAuthError(`Sign out failed: ${error.message}`);
                     }
                 },
 
+                // Retry Clerk initialization
                 async retryClerkInitialization() {
-                    this.showAuthError = false;
+                    this.clearAuthError();
                     this.authLoading = true;
-
-                    try {
-                        await initializeClerk();
-                        this.setupClerkListeners();
-                        this.authLoading = false;
-                    } catch (error) {
-                        this.authLoading = false;
-                        this.showAuthError = true;
-                        this.authErrorMessage = `Still unable to connect: ${error.message}. Please check your internet connection and refresh the page.`;
-                    }
+                    await initializeClerk();
                 },
 
-                // Test methods
-                startTest() {
-                    this.testStarted = true;
-                    this.answers = new Array(this.questions.length).fill(null);
-                    console.log('Test started with', this.questions.length, 'questions');
-                },
-
-                selectAnswer(value) {
-                    this.answers[this.currentQuestion] = value;
-                    console.log(`Question ${this.currentQuestion + 1}: Selected
+                // Get answer label
+                getAnswerLabel(value) {
+                    const labels = {
+                        1: 'Strongly Disagree',
+                        2: 'Disagree',
+                        3: 'Neutral',
+                        4: 'Agree',
+                        5: 'Strongly Agree'
+                    };
+                    return labels[value] || 'Unknown';
+                }
+            };
+        }
+    </script>
+</body>
+</html>
