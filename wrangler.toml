@@ -1,13 +1,69 @@
+#:schema node_modules/wrangler/config-schema.json
 name = "mbti-app"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-12-15"
+workers_dev = true  # Enable free workers.dev subdomain
 
+# Observability (FREE)
 [observability]
 enabled = true
+head_sampling_rate = 1  # Log 100% of requests on free tier
 
-[vars]
-CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+# Analytics Engine (FREE tier: 10M writes/month)
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
 
+# Static Assets Configuration
 [assets]
 binding = "ASSETS"
 directory = "./public"
+not_found_handling = "single-page-application"  # For SPAs
+
+# Environment Variables
+[vars]
+CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+CLERK_SECRET_KEY = "sk_test_Pkn7aJ0ijhpbdSA6dmWGToQ4yc0O0hllUSioOdX930"
+TURSO_DATABASE_URL = "libsql://mbti-naas1201.aws-ap-northeast-1.turso.io"
+TURSO_AUTH_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjU5NDQyODQsImlkIjoiNmU4MmFmYmYtYzRlZi00YTE5LThlNTgtZDMwM2QyNDVkZGQ0IiwicmlkIjoiYWY3Y2FjMTItY2ExOC00YTYyLWE5YTUtYzhmNzMzNTQ1ZmFkIn0.KRy6wx0WEi3NmUH_R5gIfi7JmO7RP639ZWMv4ar9AvIcaWBM_DqD4gfNkVvIUqZy_-vhZ5IDWghWIjcoVE7QCw"
+ENVIRONMENT = "development"
+
+# Staging Environment
+[env.staging]
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+# Production Environment
+[env.production]
+[env.production.vars]
+ENVIRONMENT = "production"
+
+# Optional: KV Storage (FREE: 100K reads/day, 1K writes/day, 1GB storage)
+# Uncomment when needed
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-id"
+
+# Optional: D1 Database (FREE tier available)
+# Uncomment when needed
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "my-database"
+# database_id = "your-db-id"
+
+# Optional: R2 Storage (FREE: 10GB storage, 1M Class A ops/month)
+# Uncomment when needed
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "my-bucket"
+
+# Optional: Durable Objects (FREE: 1M requests/month)
+# Uncomment when needed
+# [[durable_objects.bindings]]
+# name = "MY_DO"
+# class_name = "MyDurableObject"
+
+# Optional: Service Bindings (FREE - internal worker-to-worker calls)
+# Uncomment when needed
+# [[services]]
+# binding = "OTHER_WORKER"
+# service = "other-worker-name"

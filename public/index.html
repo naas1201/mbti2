@@ -1,332 +1,428 @@
 <!doctype html>
 <html lang="en" class="dark">
-  <head>
+<head></head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MBTI - Discover Who You Really Are</title>
+    <title></title>MBTI - Discover Who You Really Are</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
-    ></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
-    <script src="/app.js"></script>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+        @</style>import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
-      * {
-        font-family:
-          "Inter",
-          -apple-system,
-          BlinkMacSystemFont,
-          sans-serif;
-      }
+        * {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        }
 
-      .fade-enter {
-        opacity: 0;
-        transform: translateY(10px);
-      }
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(10px);
+        }
 
-      .fade-enter-active {
-        transition:
-          opacity 0.3s ease,
-          transform 0.3s ease;
-      }
+        .fade-enter-active {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
 
-      .fade-enter-to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+        .fade-enter-to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .clerk-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .clerk-modal-content {
+            background-color: white;
+            color: black;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 400px;
+            width: 90%;
+        }
     </style>
-  </head>
-  <body class="bg-black text-white min-h-screen">
-    <div x-data="mbtiApp()" class="container mx-auto px-6 py-12 max-w-4xl">
-      <!-- Header -->
-      <header class="flex justify-between items-center mb-20">
-        <div class="text-sm font-medium tracking-wider">MBTI</div>
-        <button
-          @click="signIn()"
-          x-show="!isAuthenticated"
-          class="text-sm font-medium px-6 py-2 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
-        >
-          Sign in to Save
-        </button>
-        <div x-show="isAuthenticated" class="text-sm font-medium text-white/60">
-          Signed In
-        </div>
-      </header>
-
-      <!-- Hero Section -->
-      <section
-        x-show="!testStarted && !testCompleted"
-        class="text-center mb-32"
-      >
-        <h1
-          class="text-7xl md:text-8xl font-light mb-8 leading-none tracking-tight"
-        >
-          Discover who<br />you really are.
-        </h1>
-        <p class="text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light">
-          20 questions. 5 minutes. A deeper understanding of yourself.
-        </p>
-        <button
-          @click="startTest()"
-          class="bg-white text-black px-12 py-4 text-lg font-medium hover:bg-white/90 transition-all duration-200"
-        >
-          Begin Test
-        </button>
-      </section>
-
-      <!-- Test Section -->
-      <section x-show="testStarted && !testCompleted" class="min-h-[60vh]">
-        <!-- Progress Bar -->
-        <div class="mb-12">
-          <div class="flex justify-between text-sm text-white/40 mb-2">
-            <span
-              >Question <span x-text="currentQuestion + 1"></span> of 20</span
-            >
-            <span
-              x-text="Math.round(((currentQuestion + 1) / 20) * 100) + '%'"
-            ></span>
-          </div>
-          <div class="w-full h-1 bg-white/10">
-            <div
-              class="h-full bg-white transition-all duration-300"
-              :style="`width: ${((currentQuestion + 1) / 20) * 100}%`"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Question -->
-        <div x-show="questions.length > 0" class="mb-16">
-          <template x-for="(question, index) in questions" :key="question.id">
-            <div
-              x-show="currentQuestion === index"
-              x-transition:enter="fade-enter fade-enter-active"
-              x-transition:enter-end="fade-enter-to"
-            >
-              <h2
-                class="text-4xl md:text-5xl font-light mb-16 leading-tight"
-                x-text="question.text"
-              ></h2>
-
-              <!-- Answer Scale -->
-              <div class="space-y-4">
-                <template x-for="value in [1, 2, 3, 4, 5]" :key="value">
-                  <button
-                    @click="selectAnswer(value)"
-                    class="w-full py-6 px-8 text-left border transition-all duration-200 text-lg font-light"
-                    :class="answers[currentQuestion] === value ? 'border-white bg-white text-black' : 'border-white/20 hover:border-white/40'"
-                  >
-                    <span x-text="getAnswerLabel(value)"></span>
-                  </button>
-                </template>
-              </div>
+</head>
+<body class="bg-black text-white min-h-screen">
+    <div x-data="mbtiApp()" x-init="init()" class="container mx-auto px-6 py-12 max-w-4xl">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-20">
+            <div class="text-sm font-medium tracking-wider">MBTI</div>
+            <div></div>
+                <button
+                    @click="signIn()"
+                    x-show="!isAuthenticated && !authLoading"
+                    class="text-sm font-medium px-6 py-2 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
+                >
+                    Sign in to Save
+                </button>
+                <div x-show="authLoading" class="text-sm font-medium text-white/60">
+                    Loading...
+                </div>
+                <div x-show="isAuthenticated" class="flex items-center space-x-4">
+                    <span class="text-sm font-medium text-white/60">
+                        Welcome, <span x-text="userFirstName || 'User'"></span>
+                    </span>
+                    <button
+                        @click="signOut()"
+                        class="text-sm font-medium px-4 py-1 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
+                    >
+                        Sign Out
+                    </button>
+                </div>
             </div>
-          </template>
+        </header>
+
+        <!-- Authentication Error Modal -->
+        <div
+            x-show="showAuthError"
+            class="clerk-modal-backdrop"
+            @click.self="showAuthError = false"
+        >
+            <div class="clerk-modal-content">
+                <h3 class="text-xl font-bold mb-4">Authentication Error</h3>
+                <p class="mb-6" x-text="authErrorMessage"></p>
+                <div class="flex justify-end space-x-4">
+                    <button
+                        @click="showAuthError = false"
+                        class="px-4 py-2 border border-gray-300 hover:bg-gray-100 transition-all duration-200"
+                    >
+                        Close
+                    </button>
+                    <button
+                        @click="retryClerkInitialization()"
+                        class="px-4 py-2 bg-black text-white hover:bg-gray-800 transition-all duration-200"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Navigation -->
-        <div class="flex justify-between mt-12">
-          <button
-            @click="previousQuestion()"
-            x-show="currentQuestion > 0"
-            class="px-8 py-3 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
-          >
-            Previous
-          </button>
-          <div></div>
-        </div>
-      </section>
+        <!-- Hero Section -->
+        <section x-show="!testStarted && !testCompleted" class="text-center mb-32">
+            <h1 class="text-7xl md:text-8xl font-light mb-8 leading-none tracking-tight">
+                Discover who<br />you really are.
+            </h1>
+            <p class="text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light">
+                20 questions. 5 minutes. A deeper understanding of yourself.
+            </p>
+            <button
+                @click="startTest()"
+                class="bg-white text-black px-12 py-4 text-lg font-medium hover:bg-white/90 transition-all duration-200"
+            >
+                Begin Test
+            </button>
+            <div x-show="!isAuthenticated" class="mt-8 text-white/40 text-sm">
+                <p></p>Sign in to save your results and track your progress over time.</p>
+            </div>
+        </section>
 
-      <!-- Results Section -->
-      <section
-        x-show="testCompleted"
-        class="text-center min-h-[60vh] flex flex-col justify-center"
-      >
-        <div x-show="loading" class="text-2xl text-white/40 font-light">
-          Analyzing your responses...
-        </div>
+        <!-- Test Section -->
+        <section x-show="testStarted && !testCompleted" class="min-h-[60vh]">
+            <!-- Progress Bar -->
+            <div class="mb-12">
+                <div class="flex justify-between text-sm text-white/40 mb-2">
+                    <span></span>Question <span x-text="currentQuestion + 1"></span> of 20</span>
+                    <span x-text="Math.round(((currentQuestion + 1) / 20) * 100) + '%'"></span>
+                </div>
+                <div class="w-full h-1 bg-white/10">
+                    <div
+                        class="h-full bg-white transition-all duration-300"
+                        :style="`width: ${((currentQuestion + 1) / 20) * 100}%`"
+                    ></div>
+                </div>
+            </div>
 
-        <div x-show="!loading && result">
-          <h2
-            class="text-8xl md:text-9xl font-light mb-8 tracking-tight"
-            x-text="result"
-          ></h2>
-          <p class="text-2xl text-white/60 mb-12 font-light">
-            Your Personality Type
-          </p>
-          <p
-            class="text-lg text-white/40 mb-16 max-w-2xl mx-auto"
-            x-text="resultMessage"
-          ></p>
+            <!-- Question -->
+            <div x-show="questions.length > 0" class="mb-16">
+                <template x-for="(question, index) in questions" :key="question.id">
+                    <div
+                        x-show="currentQuestion === index"
+                        x-transition:enter="fade-enter fade-enter-active"
+                        x-transition:enter-end="fade-enter-to"
+                    >
+                        <h2 class="text-4xl md:text-5xl font-light mb-16 leading-tight" x-text="question.text"></h2>
 
-          <button
-            @click="resetTest()"
-            class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
-          >
-            Take Again
-          </button>
-        </div>
+                        <!-- Answer Scale -->
+                        <div class="space-y-4">
+                            <template x-for="value in [1, 2, 3, 4, 5]" :key="value">
+                                <button
+                                    @click="selectAnswer(value)"
+                                    class="w-full py-6 px-8 text-left border transition-all duration-200 text-lg font-light"
+                                    :class="answers[currentQuestion] === value ? 'border-white bg-white text-black' : 'border-white/20 hover:border-white/40'"
+                                >
+                                    <span x-text="getAnswerLabel(value)"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
 
-        <div x-show="!loading && error" class="text-center">
-          <p class="text-2xl text-red-400 mb-8" x-text="error"></p>
-          <button
-            @click="resetTest()"
-            class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
-          >
-            Try Again
-          </button>
-        </div>
-      </section>
+            <!-- Navigation -->
+            <div class="flex justify-between mt-12">
+                <button
+                    @click="previousQuestion()"
+                    x-show="currentQuestion > 0"
+                    class="px-8 py-3 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
+                >
+                    Previous
+                </button>
+                <div></div>
+            </div>
+        </section>
 
-      <!-- Footer -->
-      <footer class="mt-32 text-center text-white/40 text-sm font-light">
-        <p>Myers-Briggs Type Indicator Assessment</p>
-      </footer>
+        <!-- Results Section -->
+        <section x-show="testCompleted" class="text-center min-h-[60vh] flex flex-col justify-center">
+            <div x-show="loading" class="text-2xl text-white/40 font-light">
+                Analyzing your responses...
+            </div>
+
+            <div x-show="!loading && result">
+                <h2 class="text-8xl md:text-9xl font-light mb-8 tracking-tight" x-text="result"></h2>
+                <p class="text-2xl text-white/60 mb-12 font-light">
+                    Your Personality Type
+                </p>
+                <p class="text-lg text-white/40 mb-16 max-w-2xl mx-auto" x-text="resultMessage"></p>
+
+                <div class="space-x-4">
+                    <button
+                        @click="resetTest()"
+                        class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
+                    >
+                        Take Again
+                    </button>
+                    <button
+                        @click="shareResults()"
+                        x-show="isAuthenticated"
+                        class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
+                    >
+                        Share Results
+                    </button>
+                </div>
+            </div>
+
+            <div x-show="!loading && error" class="text-center">
+                <p class="text-2xl text-red-400 mb-8" x-text="error"></p>
+                <button
+                    @click="resetTest()"
+                    class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
+                >
+                    Try Again
+                </button>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-32 text-center text-white/40 text-sm font-light">
+            <p>My</p>ers-Briggs Type Indicator Assessment</p>
+            <p class="mt-2 text-xs">Powered by Clerk Authentication</p>
+        </footer>
     </div>
 
     <script>
-      // Initialize Clerk
-      const clerkPubKey =
-        "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA";
-      let clerk;
+        //</script> Clerk Configuration
+        const CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA";
+        let clerk = null;
+        let clerkInitialized = false;
 
-      async function initializeClerk() {
-        try {
-          clerk = new window.Clerk(clerkPubKey);
-          await clerk.load();
-        } catch (error) {
-          console.error("Failed to initialize Clerk:", error);
+        // Initialize Clerk with retry logic
+        async function initializeClerk(maxRetries = 3, retryDelay = 1000) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`Initializing Clerk (attempt ${attempt}/${maxRetries})...`);
+
+                    // Check if Clerk is available
+                    if (typeof window.Clerk === 'undefined') {
+                        throw new Error('Clerk SDK not loaded. Check CDN connection.');
+                    }
+
+                    // Create Clerk instance
+                    clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
+
+                    // Load Clerk
+                    await clerk.load({
+                        standardBrowser: true,
+                        appearance: {
+                            elements: {
+                                rootBox: 'clerk-modal-backdrop',
+                                modalContent: 'clerk-modal-content',
+                                formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
+                                formButtonSecondary: 'border border-gray-300 hover:bg-gray-100',
+                                footerActionLink: 'text-black hover:text-gray-700',
+                            }
+                        }
+                    });
+
+                    console.log('Clerk initialized successfully');
+                    clerkInitialized = true;
+                    return true;
+
+                } catch (error) {
+                    console.error(`Clerk initialization failed (attempt ${attempt}):`, error);
+
+                    if (attempt < maxRetries) {
+                        console.log(`Retrying in ${retryDelay}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+            return false;
         }
-      }
 
-      initializeClerk();
+        // Main application
+        function mbtiApp() {
+            return {
+                // State
+                testStarted: false,
+                testCompleted: false,
+                currentQuestion: 0,
+                answers: [],
+                questions: [],
+                result: null,
+                resultMessage: "",
+                loading: false,
+                error: null,
+                isAuthenticated: false,
+                authLoading: true,
+                userFirstName: null,
+                userEmail: null,
+                showAuthError: false,
+                authErrorMessage: "",
 
-      function mbtiApp() {
-        return {
-          testStarted: false,
-          testCompleted: false,
-          currentQuestion: 0,
-          answers: [],
-          questions: [],
-          result: null,
-          resultMessage: "",
-          loading: false,
-          error: null,
-          isAuthenticated: false,
+                // Initialize
+                async init() {
+                    console.log('Initializing MBTI app...');
 
-          async init() {
-            // Check authentication status
-            if (clerk) {
-              clerk.addListener((state) => {
-                this.isAuthenticated = !!state.user;
-              });
-            }
+                    // Initialize Clerk
+                    try {
+                        await initializeClerk();
+                        this.setupClerkListeners();
+                        this.authLoading = false;
+                    } catch (error) {
+                        console.error('Failed to initialize Clerk after all retries:', error);
+                        this.authLoading = false;
+                        this.showAuthError = true;
+                        this.authErrorMessage = `Authentication service unavailable: ${error.message}. Please refresh the page or check your connection.`;
+                    }
 
-            // Fetch questions
-            try {
-              const response = await fetch("/api/questions");
-              const data = await response.json();
-              this.questions = data.questions;
-            } catch (error) {
-              console.error("Failed to load questions:", error);
-            }
-          },
+                    // Fetch questions
+                    try {
+                        const response = await fetch("/api/questions");
+                        if (!response.ok) {
+                            throw new Error(`Failed to load questions: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        this.questions = data.questions;
+                        console.log(`Loaded ${this.questions.length} questions`);
+                    } catch (error) {
+                        console.error("Failed to load questions:", error);
+                        this.error = "Failed to load questions. Please refresh the page.";
+                    }
+                },
 
-          async signIn() {
-            if (clerk) {
-              await clerk.openSignIn();
-            }
-          },
+                // Clerk setup
+                setupClerkListeners() {
+                    if (!clerk) return;
 
-          startTest() {
-            this.testStarted = true;
-            this.answers = new Array(this.questions.length).fill(null);
-          },
+                    // Listen for authentication state changes
+                    clerk.addListener((state) => {
+                        console.log('Clerk state changed:', state);
+                        this.isAuthenticated = !!state.user;
 
-          selectAnswer(value) {
-            this.answers[this.currentQuestion] = value;
+                        if (state.user) {
+                            this.userFirstName = state.user.firstName;
+                            this.userEmail = state.user.primaryEmailAddress?.emailAddress;
+                            console.log('User authenticated:', this.userFirstName, this.userEmail);
+                        } else {
+                            this.userFirstName = null;
+                            this.userEmail = null;
+                            console.log('User signed out');
+                        }
+                    });
 
-            // Auto-advance to next question
-            setTimeout(() => {
-              if (this.currentQuestion < this.questions.length - 1) {
-                this.currentQuestion++;
-              } else {
-                this.submitTest();
-              }
-            }, 200);
-          },
+                    // Check initial state
+                    if (clerk.user) {
+                        this.isAuthenticated = true;
+                        this.userFirstName = clerk.user.firstName;
+                        this.userEmail = clerk.user.primaryEmailAddress?.emailAddress;
+                    }
+                },
 
-          previousQuestion() {
-            if (this.currentQuestion > 0) {
-              this.currentQuestion--;
-            }
-          },
+                // Authentication methods
+                async signIn() {
+                    if (!clerk) {
+                        this.showAuthError = true;
+                        this.authErrorMessage = "Authentication service not initialized. Please refresh the page.";
+                        return;
+                    }
 
-          getAnswerLabel(value) {
-            const labels = {
-              1: "Strongly Disagree",
-              2: "Disagree",
-              3: "Neutral",
-              4: "Agree",
-              5: "Strongly Agree",
-            };
-            return labels[value];
-          },
+                    try {
+                        console.log('Opening sign-in modal...');
+                        await clerk.openSignIn({
+                            afterSignInUrl: window.location.href,
+                            afterSignUpUrl: window.location.href,
+                            appearance: {
+                                elements: {
+                                    rootBox: 'clerk-modal-backdrop',
+                                    modalContent: 'clerk-modal-content',
+                                    formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Failed to open sign-in modal:', error);
+                        this.showAuthError = true;
+                        this.authErrorMessage = `Failed to open sign-in: ${error.message}. Please try again.`;
+                    }
+                },
 
-          async submitTest() {
-            this.testCompleted = true;
-            this.loading = true;
-            this.error = null;
+                async signOut() {
+                    if (!clerk) return;
 
-            try {
-              let token = null;
+                    try {
+                        await clerk.signOut();
+                        console.log('User signed out successfully');
+                    } catch (error) {
+                        console.error('Failed to sign out:', error);
+                        this.showAuthError = true;
+                        this.authErrorMessage = `Failed to sign out: ${error.message}. Please try again.`;
+                    }
+                },
 
-              if (clerk && clerk.session) {
-                token = await clerk.session.getToken();
-              }
+                async retryClerkInitialization() {
+                    this.showAuthError = false;
+                    this.authLoading = true;
 
-              const headers = {
-                "Content-Type": "application/json",
-              };
+                    try {
+                        await initializeClerk();
+                        this.setupClerkListeners();
+                        this.authLoading = false;
+                    } catch (error) {
+                        this.authLoading = false;
+                        this.showAuthError = true;
+                        this.authErrorMessage = `Still unable to connect: ${error.message}. Please check your internet connection and refresh the page.`;
+                    }
+                },
 
-              if (token) {
-                headers["Authorization"] = `Bearer ${token}`;
-              }
+                // Test methods
+                startTest() {
+                    this.testStarted = true;
+                    this.answers = new Array(this.questions.length).fill(null);
+                    console.log('Test started with', this.questions.length, 'questions');
+                },
 
-              const response = await fetch("/api/submit-test", {
-                method: "POST",
-                headers: headers,
-                body: JSON.stringify({ answers: this.answers }),
-              });
-
-              if (!response.ok) {
-                throw new Error("Failed to submit test");
-              }
-
-              const data = await response.json();
-              this.result = data.mbtiType;
-              this.resultMessage = data.message;
-            } catch (error) {
-              console.error("Error submitting test:", error);
-              this.error = "Failed to submit your test. Please try again.";
-            } finally {
-              this.loading = false;
-            }
-          },
-
-          resetTest() {
-            this.testStarted = false;
-            this.testCompleted = false;
-            this.currentQuestion = 0;
-            this.answers = [];
-            this.result = null;
-            this.resultMessage = "";
-            this.error = null;
-          },
-        };
-      }
-    </script>
-  </body>
-</html>
+                selectAnswer(value) {
+                    this.answers[this.currentQuestion] = value;
+                    console.log(`Question ${this.currentQuestion + 1}: Selected
