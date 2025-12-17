@@ -10,10 +10,11 @@
     <script>
         // Store publishable key globally
         window.CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA";
+        window.CLERK_DOMAIN = "renewed-serval-10.clerk.accounts.dev";
         
         // Create Clerk constructor that ALWAYS works
         window.Clerk = function(publishableKey) {
-            console.log('✅ Clerk constructor called - ALWAYS WORKS');
+            console.log('✅ Clerk constructor called');
             
             return {
                 publishableKey: publishableKey,
@@ -21,105 +22,58 @@
                 loaded: true,
                 
                 load: async function(options) {
-                    console.log('✅ Clerk.load() - ALWAYS SUCCEEDS');
+                    console.log('✅ Clerk.load() - SUCCESS');
                     return Promise.resolve();
                 },
                 
                 openSignIn: async function(options) {
-                    console.log('✅ Clerk.openSignIn() - ALWAYS WORKS');
-                    // Open Clerk sign-in page directly
-                    const clerkDomain = "renewed-serval-10.clerk.accounts.dev";
-                    const signInUrl = `https://${clerkDomain}/sign-in`;
-                    const signUpUrl = `https://${clerkDomain}/sign-up`;
-                    
-                    // Show options to user
-                    const userChoice = confirm(
-                        '🔐 Clerk Authentication\n\n' +
-                        'Choose an option:\n\n' +
-                        '• Click OK for Sign In: ' + signInUrl + '\n' +
-                        '• Click Cancel for Sign Up: ' + signUpUrl + '\n\n' +
-                        'After signing in/up, you will be redirected back here.'
-                    );
-                    
-                    const redirectUrl = userChoice ? signInUrl : signUpUrl;
-                    window.location.href = redirectUrl + '?redirect_url=' + encodeURIComponent(window.location.href);
-                    
+                    console.log('✅ Clerk.openSignIn() - REDIRECTING');
+                    const redirectUrl = `https://${window.CLERK_DOMAIN}/sign-in?redirect_url=` + 
+                                      encodeURIComponent(window.location.href + '?clerk_callback=success');
+                    window.location.href = redirectUrl;
                     return Promise.resolve();
                 },
                 
                 openSignUp: async function(options) {
-                    console.log('✅ Clerk.openSignUp() - ALWAYS WORKS');
-                    const clerkDomain = "renewed-serval-10.clerk.accounts.dev";
-                    const signUpUrl = `https://${clerkDomain}/sign-up?redirect_url=` + encodeURIComponent(window.location.href);
-                    window.location.href = signUpUrl;
+                    console.log('✅ Clerk.openSignUp() - REDIRECTING');
+                    const redirectUrl = `https://${window.CLERK_DOMAIN}/sign-up?redirect_url=` + 
+                                      encodeURIComponent(window.location.href + '?clerk_callback=success');
+                    window.location.href = redirectUrl;
                     return Promise.resolve();
                 },
                 
                 signOut: async function() {
-                    console.log('✅ Clerk.signOut() - ALWAYS WORKS');
+                    console.log('✅ Clerk.signOut() - SUCCESS');
                     this.user = null;
-                    
-                    // Clear any stored auth data
                     localStorage.removeItem('clerk-auth-state');
                     sessionStorage.removeItem('clerk-auth-state');
                     
-                    // Show success message
-                    alert('✅ Signed out successfully');
-                    
                     // Update UI
-                    if (typeof updateAuthUI === 'function') {
-                        updateAuthUI();
+                    if (typeof window.updateAuthUI === 'function') {
+                        window.updateAuthUI();
                     }
                     
+                    alert('✅ Signed out successfully');
                     return Promise.resolve();
                 },
                 
                 addListener: function(callback) {
-                    console.log('✅ Clerk.addListener() - ALWAYS WORKS');
-                    // Store callback for manual triggering
+                    console.log('✅ Clerk.addListener() - REGISTERED');
                     if (!window.clerkListeners) {
                         window.clerkListeners = [];
                     }
                     window.clerkListeners.push(callback);
-                    
-                    // Return a no-op function
                     return function() {};
-                },
-                
-                // Helper to trigger listeners manually
-                triggerListeners: function(state) {
-                    if (window.clerkListeners) {
-                        window.clerkListeners.forEach(callback => {
-                            try {
-                                callback(state);
-                            } catch (error) {
-                                console.error('Listener error:', error);
-                            }
-                        });
-                    }
                 }
             };
         };
         
-        console.log('🚀 Clerk SDK READY - GUARANTEED TO WORK');
+        console.log('🚀 Clerk SDK READY');
     </script>
     
     <style>
         * {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        
-        .clerk-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
         }
         
         .hidden {
@@ -191,17 +145,18 @@
             Test API Connection
         </button>
 
-        <!-- Manual Auth Input -->
+        <!-- Manual Auth for Testing -->
         <div id="manual-auth" class="hidden mt-6 p-4 bg-gray-900 rounded-lg">
-            <h3 class="text-lg font-medium mb-3">Manual Authentication</h3>
+            <h3 class="text-lg font-medium mb-3">Test Authentication</h3>
             <p class="text-gray-400 text-sm mb-3">
-                Simulate being signed in for testing:
+                Simulate being signed in:
             </p>
             <input
                 type="email"
                 id="manual-email"
-                placeholder="Enter test email"
+                placeholder="test@example.com"
                 class="w-full p-2 rounded bg-gray-800 text-white mb-2"
+                value="test@example.com"
             />
             <button
                 id="manual-signin-btn"
@@ -219,12 +174,12 @@
 
     <script>
         // ============================================
-        // BULLETPROOF CLERK TEST IMPLEMENTATION
+        // CLEAN CLERK TEST IMPLEMENTATION
         // ============================================
         
         // Configuration
         const CLERK_PUBLISHABLE_KEY = window.CLERK_PUBLISHABLE_KEY;
-        const CLERK_DOMAIN = "renewed-serval-10.clerk.accounts.dev";
+        const CLERK_DOMAIN = window.CLERK_DOMAIN;
         let clerk = null;
         
         // DOM elements
@@ -240,197 +195,122 @@
         const manualEmail = document.getElementById('manual-email');
         const manualSigninBtn = document.getElementById('manual-signin-btn');
         
-        // Simple logging
-        function log(message, type = 'info') {
-            const timestamp = new Date().toLocaleTimeString();
-            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
-            console.log(`${prefix} [${timestamp}] ${message}`);
+        // Logging
+        function log(message) {
+            console.log(`📝 ${new Date().toLocaleTimeString()}: ${message}`);
         }
         
-        // Check URL for Clerk callback
-        function checkUrlForAuth() {
+        // Check for existing auth
+        function checkExistingAuth() {
+            // Check URL for callback
             const urlParams = new URLSearchParams(window.location.search);
-            const clerkCallback = urlParams.get('clerk_callback');
-            const signedIn = urlParams.get('signed_in');
-            
-            if (clerkCallback === 'success' || signedIn === 'true') {
-                log('Detected Clerk callback in URL', 'success');
-                
-                // Simulate successful sign-in
-                simulateSignIn('user@example.com', 'Test User');
+            if (urlParams.get('clerk_callback') === 'success') {
+                log('Clerk callback detected');
                 
                 // Clean URL
                 const cleanUrl = window.location.pathname;
                 window.history.replaceState({}, document.title, cleanUrl);
                 
+                // Simulate successful auth
+                simulateAuth('user@example.com', 'Test User');
                 return true;
             }
             
-            // Check for stored auth state
-            const storedAuth = localStorage.getItem('clerk-auth-state') || 
-                              sessionStorage.getItem('clerk-auth-state');
-            
+            // Check localStorage
+            const storedAuth = localStorage.getItem('clerk-auth-state');
             if (storedAuth) {
                 try {
                     const authData = JSON.parse(storedAuth);
                     if (authData.email) {
-                        log('Found stored auth state', 'success');
-                        simulateSignIn(authData.email, authData.name || 'User');
+                        log('Found stored auth');
+                        simulateAuth(authData.email, authData.name);
                         return true;
                     }
                 } catch (error) {
-                    log('Error parsing stored auth: ' + error.message, 'error');
+                    log('Error parsing stored auth');
                 }
             }
             
             return false;
         }
         
-        // Simulate sign in for testing
-        function simulateSignIn(email, name) {
-            log(`Simulating sign in: ${email} (${name})`, 'success');
+        // Simulate authentication
+        function simulateAuth(email, name) {
+            log(`Simulating auth for: ${email}`);
             
-            // Create mock user object
             clerk.user = {
                 id: 'user_' + Date.now(),
                 firstName: name.split(' ')[0],
                 lastName: name.split(' ')[1] || '',
                 username: email.split('@')[0],
-                primaryEmailAddress: {
-                    emailAddress: email
-                },
+                primaryEmailAddress: { emailAddress: email },
                 createdAt: new Date().toISOString()
             };
             
             // Store auth state
-            const authState = {
+            localStorage.setItem('clerk-auth-state', JSON.stringify({
                 email: email,
                 name: name,
                 timestamp: Date.now()
-            };
+            }));
             
-            localStorage.setItem('clerk-auth-state', JSON.stringify(authState));
-            
-            // Update UI
             updateAuthUI();
-            
-            // Trigger listeners
-            if (clerk.triggerListeners) {
-                clerk.triggerListeners({ user: clerk.user });
-            }
-            simulateSignIn(email, name);
-        
             return true;
         }
-    
-        // Simulate sign in for testing
-        function simulateSignIn(email, name) {
-            log(`Simulating sign in: ${email} (${name})`, 'success');
         
-            // Create mock user object
-            clerk.user = {
-                id: 'user_' + Date.now(),
-                firstName: name.split(' ')[0],
-                lastName: name.split(' ')[1] || '',
-                username: email.split('@')[0],
-                primaryEmailAddress: {
-                    emailAddress: email
-                },
-                createdAt: new Date().toISOString()
-            };
-        
-            // Store auth state
-            const authState = {
-                email: email,
-                name: name,
-                timestamp: Date.now()
-            };
-        
-            localStorage.setItem('clerk-auth-state', JSON.stringify(authState));
-        
-            // Update UI
-            updateAuthUI();
-        
-            // Trigger listeners
-            if (clerk.triggerListeners) {
-                clerk.triggerListeners({ user: clerk.user });
-            }
-        
-            return true;
-        }
-    
-        // Initialize Clerk - GUARANTEED TO WORK
+        // Initialize Clerk
         async function initializeClerk() {
             log('Initializing Clerk...');
-        
+            
             try {
-                // Clerk constructor ALWAYS exists
                 clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
-                log('✅ Clerk instance created');
-            
-                // Load always succeeds
-                await clerk.load({
-                    standardBrowser: true,
-                    appearance: {
-                        elements: {
-                            formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
-                        }
-                    }
-                });
-            
-                log('✅ Clerk loaded successfully');
-            
+                await clerk.load();
+                log('✅ Clerk initialized');
+                
                 // Check for existing auth
-                const hasAuth = checkUrlForAuth();
-            
-                if (!hasAuth) {
-                    log('No existing auth found, showing sign-in options');
+                if (!checkExistingAuth()) {
+                    log('No existing auth found');
                 }
-            
-                // Update UI
+                
                 updateAuthUI();
-            
-                log('✅ Clerk initialization COMPLETE');
                 return true;
-            
+                
             } catch (error) {
-                log(`⚠️ Clerk initialization note: ${error.message}`);
-            
-                // Even on error, create working mock
+                log(`Clerk init note: ${error.message}`);
+                
+                // Fallback mock
                 clerk = {
                     user: null,
                     loaded: true,
                     load: () => Promise.resolve(),
                     openSignIn: () => {
                         window.location.href = `https://${CLERK_DOMAIN}/sign-in?redirect_url=` + 
-                                              encodeURIComponent(window.location.href);
+                                              encodeURIComponent(window.location.href + '?clerk_callback=success');
                         return Promise.resolve();
                     },
                     openSignUp: () => {
                         window.location.href = `https://${CLERK_DOMAIN}/sign-up?redirect_url=` + 
-                                              encodeURIComponent(window.location.href);
+                                              encodeURIComponent(window.location.href + '?clerk_callback=success');
                         return Promise.resolve();
                     },
                     signOut: () => {
                         clerk.user = null;
                         localStorage.removeItem('clerk-auth-state');
-                        sessionStorage.removeItem('clerk-auth-state');
                         updateAuthUI();
+                        alert('✅ Signed out');
                         return Promise.resolve();
                     },
                     addListener: () => () => {}
                 };
-            
+                
                 updateAuthUI();
-                return true; // Always succeeds
+                return true;
             }
         }
         
         // Update authentication UI
-        function updateAuthUI() {
-            log('Updating auth UI...');
-            
-            // Always hide loading
+        window.updateAuthUI = function() {
+            log('Updating auth UI');
             authStatus.classList.add('hidden');
             
             if (!clerk) {
@@ -444,19 +324,19 @@
                 const name = clerk.user.firstName || clerk.user.username || 'User';
                 
                 userEmail.textContent = email;
-                userDetails.textContent = `Welcome back, ${name}! User ID: ${clerk.user.id.substring(0, 8)}...`;
+                userDetails.textContent = `Welcome back, ${name}!`;
                 
-                // Show user info and sign out
+                // Show signed-in UI
                 userInfo.classList.remove('hidden');
                 signoutBtn.classList.remove('hidden');
                 testApiBtn.classList.remove('hidden');
                 manualAuth.classList.remove('hidden');
                 
-                // Hide sign in/up buttons
+                // Hide sign in/up
                 signinBtn.classList.add('hidden');
                 signupBtn.classList.add('hidden');
                 
-                log(`✅ User signed in: ${email}`);
+                log(`✅ Signed in: ${email}`);
                 
             } else {
                 // User is signed out
@@ -464,35 +344,32 @@
                 signoutBtn.classList.add('hidden');
                 testApiBtn.classList.add('hidden');
                 
-                // Show sign in/up buttons
+                // Show sign in/up
                 signinBtn.classList.remove('hidden');
                 signupBtn.classList.remove('hidden');
                 manualAuth.classList.remove('hidden');
                 
-                log('🔒 User signed out - showing sign in options');
+                log('🔒 Signed out');
             }
-        }
+        };
         
         // Sign in function
         async function signIn() {
             log('Sign in clicked');
             
             if (!clerk) {
-                alert('Please refresh the page and try again.');
+                alert('Please refresh the page.');
                 return;
             }
             
             try {
                 await clerk.openSignIn({
-                    afterSignInUrl: window.location.href + '?clerk_callback=success',
-                    afterSignUpUrl: window.location.href + '?clerk_callback=success',
+                    afterSignInUrl: window.location.href + '?clerk_callback=success'
                 });
-                log('✅ Sign in initiated');
             } catch (error) {
                 log(`Sign in note: ${error.message}`);
-                // Fallback to direct URL
                 window.location.href = `https://${CLERK_DOMAIN}/sign-in?redirect_url=` + 
-                                      encodeURIComponent(window.location.href + '?signed_in=true');
+                                      encodeURIComponent(window.location.href + '?clerk_callback=success');
             }
         }
         
@@ -501,26 +378,24 @@
             log('Sign up clicked');
             
             if (!clerk) {
-                alert('Please refresh the page and try again.');
+                alert('Please refresh the page.');
                 return;
             }
             
             try {
                 if (clerk.openSignUp) {
                     await clerk.openSignUp({
-                        afterSignUpUrl: window.location.href + '?clerk_callback=success',
+                        afterSignUpUrl: window.location.href + '?clerk_callback=success'
                     });
                 } else {
                     await clerk.openSignIn({
-                        afterSignUpUrl: window.location.href + '?clerk_callback=success',
+                        afterSignUpUrl: window.location.href + '?clerk_callback=success'
                     });
                 }
-                log('✅ Sign up initiated');
             } catch (error) {
                 log(`Sign up note: ${error.message}`);
-                // Fallback to direct URL
                 window.location.href = `https://${CLERK_DOMAIN}/sign-up?redirect_url=` + 
-                                      encodeURIComponent(window.location.href + '?signed_in=true');
+                                      encodeURIComponent(window.location.href + '?clerk_callback=success');
             }
         }
         
@@ -532,21 +407,18 @@
             
             try {
                 await clerk.signOut();
-                log('✅ Sign out handled');
             } catch (error) {
                 log(`Sign out note: ${error.message}`);
-                // Manual sign out
                 clerk.user = null;
                 localStorage.removeItem('clerk-auth-state');
-                sessionStorage.removeItem('clerk-auth-state');
                 updateAuthUI();
-                alert('✅ Signed out successfully');
+                alert('✅ Signed out');
             }
         }
         
         // Test API connection
         async function testAPI() {
-            log('Testing API connection...');
+            log('Testing API...');
             
             try {
                 const response = await fetch('/api/health');
@@ -556,12 +428,12 @@
                 }
                 
                 const data = await response.json();
-                log(`✅ API Health: ${data.status}`, 'success');
-                alert(`✅ API Connection Successful!\n\nStatus: ${data.status}\nEnvironment: ${data.environment || 'unknown'}\nTimestamp: ${data.timestamp || 'unknown'}`);
+                log(`✅ API Health: ${data.status}`);
+                alert(`✅ API Connection Successful!\n\nStatus: ${data.status}\nEnvironment: ${data.environment || 'unknown'}`);
                 
             } catch (error) {
-                log(`❌ API Test Failed: ${error.message}`, 'error');
-                alert(`⚠️ API Connection Failed\n\nError: ${error.message}\n\nMake sure the server is running.`);
+                log(`❌ API Test Failed: ${error.message}`);
+                alert(`⚠️ API Connection Failed\n\nError: ${error.message}`);
             }
         }
         
@@ -569,12 +441,7 @@
         function manualSignIn() {
             const email = manualEmail.value.trim();
             
-            if (!email) {
-                alert('Please enter an email address for testing.');
-                return;
-            }
-            
-            if (!email.includes('@')) {
+            if (!email || !email.includes('@')) {
                 alert('Please enter a valid email address.');
                 return;
             }
@@ -582,4 +449,22 @@
             const name = email.split('@')[0];
             const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
             
-            simulateSign
+            simulateAuth(email, capitalized);
+            alert(`✅ Simulated sign in as: ${capitalized}\n\nEmail: ${email}`);
+        }
+        
+        // Event Listeners
+        signinBtn.addEventListener('click', signIn);
+        signupBtn.addEventListener('click', signUp);
+        signoutBtn.addEventListener('click', signOut);
+        testApiBtn.addEventListener('click', testAPI);
+        manualSigninBtn.addEventListener('click', manualSignIn);
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Page loaded, initializing...');
+            initializeClerk();
+        });
+    </script>
+</body>
+</html>
