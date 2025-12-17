@@ -1,5 +1,55 @@
 # AI.md - Project Brain
 
+## Comprehensive MBTI Test v2.0 (December 2025)
+**Problem**: 20 questions test not working, not coordinated with database, basic scoring algorithm
+**Root Cause**: 
+1. Frontend expected 20 questions but backend had mismatched structure
+2. Database schema didn't match implementation
+3. Basic scoring without turbulent/assertive dimension
+4. No comprehensive personality descriptions
+
+**Solution**: Created comprehensive 60-question MBTI test with:
+1. **Enhanced Scoring Algorithm**: 
+   - 4 MBTI dimensions (EI, SN, TF, JP) with weighted questions
+   - Turbulent/Assertive scoring based on answer variance
+   - Detailed dimension scores (-40 to +40 range)
+   - Complex personality descriptions for all 16 types
+
+2. **Database Integration**:
+   - Updated schema for 60 questions
+   - Added turbulent/assertive tracking
+   - Proper user answer storage
+   - Enhanced indexes for performance
+
+3. **Frontend Improvements**:
+   - Dynamic question loading (1-60)
+   - Progress tracking with percentages
+   - Enhanced results display with detailed scores
+   - Better error handling and fallbacks
+
+4. **API Enhancements**:
+   - Proper question formatting
+   - Comprehensive test submission with all data
+   - Personality description generation
+   - Analytics tracking for all endpoints
+
+**Files Updated**:
+1. `src/index.ts` - Enhanced API endpoints with comprehensive scoring
+2. `src/lib/questions.ts` - Expanded to 60 questions with weights
+3. `src/lib/scoring.ts` - Added turbulent/assertive scoring and personality descriptions
+4. `public/index.html` - Updated for 60 questions and enhanced UI
+5. `migrate_database.sql` - Complete v2.0 database schema
+6. `databasestructure.md` - Updated documentation
+7. `test-mbti.sh` - Created comprehensive test suite
+
+**Key Features**:
+- 60 questions for accurate personality assessment
+- Turbulent/Assertive suffix (e.g., INFJ-A, ENFP-T)
+- Detailed dimension scores and analysis
+- Comprehensive personality descriptions
+- Database persistence for all answers
+- Production-ready error handling
+
 ### CSS Linking Fix (December 2025)
 **Problem**: Created local CSS file but forgot to link it to HTML files, causing unstyled pages.
 **Root Cause**: CSS file `mbti-styles.css` was created but not referenced in `<link>` tags.
@@ -13,7 +63,7 @@
 
 ### CSS & Ad Blocker Crisis (December 2025)
 **Problem**: Users reported broken CSS on the MBTI test application. The page appeared unstyled.
-**Root Cause**: Ad blockers were blocking the Tailwind CSS CDN (`https://cdn.tailwindcss.com`), causing `ERR_BLOCKED_BY_CLIENT` errors.
+**Root Cause**: Ad blockers were blocking the Tailwind CSS CDN (`https://cdn.tailwindcss.com`), causing `ERR_BLOCKED_BY_CLIENT` 
 **Impact**: Application looked broken, hurting user trust and experience.
 **Solution**: Created a local CSS file (`public/mbti-styles.css`) with all necessary Tailwind-like utility classes.
 **Key Decisions**:

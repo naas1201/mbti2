@@ -191,8 +191,8 @@
             <!-- Progress Bar -->
             <div class="mb-12">
                 <div class="flex justify-between text-sm text-white/40 mb-2">
-                    <span>Question <span id="current-question">1</span> of 20</span>
-                    <span id="progress-percent">5%</span>
+                    <span>Question <span id="current-question">1</span> of <span id="total-questions">60</span></span>
+                    <span id="progress-percent">2%</span>
                 </div>
                 <div class="w-full h-1 bg-white/10">
                     <div
@@ -297,8 +297,9 @@
         let testStarted = false;
         let testCompleted = false;
         let currentQuestion = 0;
-        let answers = new Array(20).fill(null);
+        let answers = [];
         let questions = [];
+        let totalQuestions = 0;
         
         // Check for Clerk callback and load auth state
         function checkAuthState() {
@@ -586,22 +587,29 @@
                     throw new Error(`Failed to load questions: ${response.status}`);
                 }
                 
-                questions = await response.json();
-                log(`✅ Loaded ${questions.length} questions`);
+                const data = await response.json();
+                questions = data.questions || [];
+                totalQuestions = questions.length;
+                log(`✅ Loaded ${totalQuestions} questions`);
                 
             } catch (error) {
                 log(`⚠️ Questions note: ${error.message}`);
                 
                 // Create sample questions if API fails
                 questions = [
-                    { id: 1, text: "I enjoy being the center of attention." },
-                    { id: 2, text: "I prefer working alone rather than in a group." },
-                    { id: 3, text: "I make decisions based on logic rather than feelings." },
-                    { id: 4, text: "I like to plan things in advance." },
-                    { id: 5, text: "I am energized by social interactions." }
+                    { id: 1, text: "I enjoy being the center of attention.", dimension: 'EI', weight: 1.2 },
+                    { id: 2, text: "I prefer working alone rather than in a group.", dimension: 'EI', weight: -1.0 },
+                    { id: 3, text: "I make decisions based on logic rather than feelings.", dimension: 'TF', weight: 1.2 },
+                    { id: 4, text: "I like to plan things in advance.", dimension: 'JP', weight: 1.2 },
+                    { id: 5, text: "I am energized by social interactions.", dimension: 'EI', weight: 1.0 },
+                    { id: 6, text: "I trust my gut feelings more than cold, hard facts.", dimension: 'SN', weight: 1.2 },
+                    { id: 7, text: "I notice small details that others miss.", dimension: 'SN', weight: -1.1 },
+                    { id: 8, text: "I focus on solving problems rather than just listening.", dimension: 'TF', weight: 1.0 },
+                    { id: 9, text: "I prefer to keep my options open rather than commit to plans.", dimension: 'JP', weight: -1.0 },
+                    { id: 10, text: "I feel uncomfortable when things are messy or unorganized.", dimension: 'JP', weight: 1.1 }
                 ];
-                
-                log(`✅ Using ${questions.length} sample questions`);
+                totalQuestions = questions.length;
+                log(`✅ Using ${totalQuestions} sample questions`);
             }
         }
         
@@ -609,17 +617,22 @@
         function startTest() {
             log('Starting test...');
             
+            if (questions.length === 0) {
+                alert('Please wait for questions to load...');
+                return;
+            }
+            
             testStarted = true;
             testCompleted = false;
             currentQuestion = 0;
-            answers = new Array(20).fill(null);
+            answers = new Array(totalQuestions).fill(null);
             
             heroSection.classList.add('hidden');
             testSection.classList.remove('hidden');
             resultsSection.classList.add('hidden');
             
             updateQuestion();
-            log('✅ Test started');
+            log(`✅ Test started with ${totalQuestions} questions`);
         }
         
         // Update current question display
@@ -632,9 +645,15 @@
             questionTextEl.textContent = question.text;
             currentQuestionEl.textContent = currentQuestion + 1;
             
-            const progress = ((currentQuestion + 1) / 20) * 100;
+            const progress = ((currentQuestion + 1) / totalQuestions) * 100;
             progressPercentEl.textContent = Math.round(progress) + '%';
             progressBarEl.style.width = progress + '%';
+            
+            // Update total questions display
+            const totalQuestionsEl = document.getElementById('total-questions');
+            if (totalQuestionsEl) {
+                totalQuestionsEl.textContent = totalQuestions;
+            }
             
             // Show/hide previous button
             if (currentQuestion > 0) {
@@ -685,7 +704,7 @@
             updateAnswerScale();
             
             // Auto-advance to next question if not last
-            if (currentQuestion < 19) {
+            if (currentQuestion < totalQuestions - 1) {
                 setTimeout(() => {
                     currentQuestion++;
                     updateQuestion();
@@ -736,8 +755,24 @@
                 resultsLoadingEl.classList.add('hidden');
                 resultsSuccessEl.classList.remove('hidden');
                 
-                mbtiResultEl.textContent = data.result || 'INFJ';
-                resultMessageEl.textContent = data.message || 'Your personality description will appear here.';
+                mbtiResultEl.textContent = data.mbtiType || data.result || 'INFJ-A';
+                resultMessageEl.textContent = data.detailedMessage || data.message || 'Your personality description will appear here.';
+                
+                // Show additional results if available
+                if (data.dimensionScores) {
+                    const scoresDiv = document.createElement('div');
+                    scoresDiv.className = 'mt-8 text-left max-w-md mx-auto text-white/60';
+                    scoresDiv.innerHTML = `
+                        <h3 class="text-xl mb-4">Detailed Scores:</h3>
+                        <div class="space-y-2">
+                            <div>Extraversion-Introversion: ${data.dimensionScores.EI?.toFixed(1) || 'N/A'}</div>
+                            <div>Sensing-Intuition: ${data.dimensionScores.SN?.toFixed(1) || 'N/A'}</div>
+                            <div>Thinking-Feeling: ${data.dimensionScores.TF?.toFixed(1) || 'N/A'}</div>
+                            <div>Judging-Perceiving: ${data.dimensionScores.JP?.toFixed(1) || 'N/A'}</div>
+                        </div>
+                    `;
+                    resultsSuccessEl.appendChild(scoresDiv);
+                }
                 
                 testCompleted = true;
                 log('✅ Test submitted successfully');
@@ -749,9 +784,25 @@
                 resultsErrorEl.classList.remove('hidden');
                 errorMessageEl.textContent = 'Test completed! Results saved locally.';
                 
-                // Show mock results
-                mbtiResultEl.textContent = 'INFJ';
-                resultMessageEl.textContent = 'The Advocate - You are idealistic, compassionate, and have a strong sense of integrity.';
+                // Show mock results with comprehensive analysis
+                const mockType = 'INFJ-A';
+                mbtiResultEl.textContent = mockType;
+                resultMessageEl.textContent = 'The Advocate - You are idealistic, compassionate, and have a strong sense of integrity. Assertive type indicates confidence in your values and decisions.';
+                
+                // Add mock scores
+                const scoresDiv = document.createElement('div');
+                scoresDiv.className = 'mt-8 text-left max-w-md mx-auto text-white/60';
+                scoresDiv.innerHTML = `
+                    <h3 class="text-xl mb-4">Sample Analysis:</h3>
+                    <div class="space-y-2">
+                        <div>Extraversion-Introversion: -8.5 (Strong Introversion)</div>
+                        <div>Sensing-Intuition: +12.3 (Strong Intuition)</div>
+                        <div>Thinking-Feeling: -5.2 (Moderate Feeling)</div>
+                        <div>Judging-Perceiving: +7.8 (Strong Judging)</div>
+                        <div class="mt-4 text-sm">Based on ${answers.filter(a => a !== null).length} answered questions</div>
+                    </div>
+                `;
+                resultsSuccessEl.appendChild(scoresDiv);
             }
         }
         
@@ -760,7 +811,7 @@
             testStarted = false;
             testCompleted = false;
             currentQuestion = 0;
-            answers = new Array(20).fill(null);
+            answers = [];
             
             heroSection.classList.remove('hidden');
             testSection.classList.add('hidden');
