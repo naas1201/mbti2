@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clerk SDK Test</title>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: #111;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+            text-align: center;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #222;
+            border-radius: 8px;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .loading {
+            background: #333;
+            color: #ffd700;
+        }
+        
+        .success {
+            background: #1a3c1a;
+            color: #4caf50;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .error {
+            background: #3c1a1a;
+            color: #f44336;
+            border-left: 4px solid #f44336;
+        }
+        
+        .info {
+            background: #1a1a3c;
+            color: #2196f3;
+            border-left: 4px solid #2196f3;
+        }
+        
+        button {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 5px;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #000;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .log-time {
+            color: #888;
+            margin-right: 10px;
+        }
+        
+        .log-info {
+            color: #2196f3;
+        }
+        
+        .log-success {
+            color: #4caf50;
+        }
+        
+        .log-error {
+            color: #f44336;
+        }
+        
+        .log-warn {
+            color: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clerk SDK Test Page</h1>
+        
+        <div class="test-section">
+            <h2>SDK Loading Test</h2>
+            
+            <div id="sdk-status" class="status loading">
+                ⏳ Checking if Clerk SDK is loaded...
+            </div>
+            
+            <div id="key-status" class="status loading">
+                ⏳ Checking publishable key...
+            </div>
+            
+            <div id="init-status" class="status loading">
+                ⏳ Waiting for initialization...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Actions</h2>
+            
+            <div class="button-group">
+                <button id="test-sdk-btn" disabled>
+                    Test Clerk SDK
+                </button>
+                
+                <button id="signin-btn" disabled>
+                    Sign In with Clerk
+                </button>
+                
+                <button id="signout-btn" disabled>
+                    Sign Out
+                </button>
+            </div>
+            
+            <div id="user-info" class="status info" style="display: none;">
+                User information will appear here
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Console Log</h2>
+            <div id="log-container" class="log">
+                <!-- Log entries will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Clerk Configuration
+        const CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA";
+        let clerk = null;
+        
+        // DOM Elements
+        const sdkStatus = document.getElementById('sdk-status');
+        const keyStatus = document.getElementById('key-status');
+        const initStatus = document.getElementById('init-status');
+        const testSdkBtn = document.getElementById('test-sdk-btn');
+        const signinBtn = document.getElementById('signin-btn');
+        const signoutBtn = document.getElementById('signout-btn');
+        const userInfo = document.getElementById('user-info');
+        const logContainer = document.getElementById('log-container');
+        
+        // Logging function
+        function logMessage(message, type = 'info') {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-time">${timeString}</span>
+                <span class="log-${type}">${message}</span>
+            `;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Test Clerk SDK loading
+        function testClerkSDK() {
+            logMessage('Testing Clerk SDK availability...', 'info');
+            
+            if (typeof window.Clerk === 'undefined') {
+                sdkStatus.className = 'status error';
+                sdkStatus.innerHTML = '❌ Clerk SDK not found in window.Clerk';
+                logMessage('Clerk SDK not loaded. Trying to load from CDN...', 'error');
+                loadClerkSDK();
+                return false;
+            }
+            
+            sdkStatus.className = 'status success';
+            sdkStatus.innerHTML = '✅ Clerk SDK loaded successfully';
+            logMessage('Clerk SDK found in window.Clerk', 'success');
+            return true;
+        }
+        
+        // Load Clerk SDK from CDN
+        function loadClerkSDK() {
+            logMessage('Loading Clerk SDK from CDN...', 'info');
+            
+            // Try official Clerk CDN
+            const script = document.createElement('script');
+            script.src = 'https://cdn.clerk.com/clerk-js.browser.js';
+            script.crossOrigin = 'anonymous';
+            script.onload = () => {
+                logMessage('Clerk SDK loaded from CDN', 'success');
+                testClerkSDK();
+            };
+            script.onerror = () => {
+                logMessage('Failed to load Clerk SDK from CDN', 'error');
+                sdkStatus.className = 'status error';
+                sdkStatus.innerHTML = '❌ Failed to load Clerk SDK from CDN';
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // Test publishable key
+        function testPublishableKey() {
+            logMessage('Testing publishable key...', 'info');
+            
+            if (!CLERK_PUBLISHABLE_KEY) {
+                keyStatus.className = 'status error';
+                keyStatus.innerHTML = '❌ No publishable key configured';
+                logMessage('Missing publishable key', 'error');
+                return false;
+            }
+            
+            if (!CLERK_PUBLISHABLE_KEY.startsWith('pk_')) {
+                keyStatus.className = 'status error';
+                keyStatus.innerHTML = '❌ Invalid publishable key format';
+                logMessage('Publishable key should start with "pk_"', 'error');
+                return false;
+            }
+            
+            keyStatus.className = 'status success';
+            keyStatus.innerHTML = `✅ Publishable key found: ${CLERK_PUBLISHABLE_KEY.substring(0, 20)}...`;
+            logMessage('Publishable key is valid', 'success');
+            return true;
+        }
+        
+        // Initialize Clerk
+        async function initializeClerk() {
+            logMessage('Initializing Clerk...', 'info');
+            
+            if (typeof window.Clerk === 'undefined') {
+                initStatus.className = 'status error';
+                initStatus.innerHTML = '❌ Cannot initialize: Clerk SDK not loaded';
+                logMessage('Clerk SDK not available for initialization', 'error');
+                return;
+            }
+            
+            try {
+                logMessage(`Creating Clerk instance with key: ${CLERK_PUBLISHABLE_KEY.substring(0, 20)}...`, 'info');
+                clerk = new window.Clerk(CLERK_PUBLISHABLE_KEY);
+                
+                logMessage('Loading Clerk configuration...', 'info');
+                await clerk.load({
+                    standardBrowser: true,
+                    appearance: {
+                        elements: {
+                            formButtonPrimary: 'bg-black text-white hover:bg-gray-800',
+                        }
+                    }
+                });
+                
+                initStatus.className = 'status success';
+                initStatus.innerHTML = '✅ Clerk initialized successfully';
+                logMessage('Clerk initialized successfully', 'success');
+                
+                // Enable buttons
+                testSdkBtn.disabled = false;
+                signinBtn.disabled = false;
+                signoutBtn.disabled = false;
+                
+                // Update UI based on auth state
+                updateAuthUI();
+                
+                // Listen for auth state changes
+                clerk.addListener((state) => {
+                    logMessage(`Auth state changed: ${JSON.stringify(state)}`, 'info');
+                    updateAuthUI();
+                });
+                
+            } catch (error) {
+                initStatus.className = 'status error';
+                initStatus.innerHTML = `❌ Clerk initialization failed: ${error.message}`;
+                logMessage(`Clerk initialization error: ${error.message}`, 'error');
+                console.error('Clerk initialization error:', error);
+            }
+        }
+        
+        // Update authentication UI
+        function updateAuthUI() {
+            if (!clerk) {
+                userInfo.style.display = 'none';
+                return;
+            }
+            
+            if (clerk.user) {
+                // User is signed in
+                const email = clerk.user.primaryEmailAddress?.emailAddress || 'No email';
+                const name = clerk.user.firstName || clerk.user.username || 'User';
+                
+                userInfo.style.display = 'block';
+                userInfo.innerHTML = `
+                    ✅ Signed in as: <strong>${name}</strong><br>
+                    📧 Email: ${email}<br>
+                    🆔 User ID: ${clerk.user.id.substring(0, 10)}...
+                `;
+                
+                signinBtn.textContent = 'Sign In (Already signed in)';
+                signinBtn.disabled = true;
+                signoutBtn.disabled = false;
+                
+                logMessage(`User signed in: ${name} (${email})`, 'success');
+            } else {
+                // User is signed out
+                userInfo.style.display = 'block';
+                userInfo.innerHTML = '🔒 Not signed in';
+                
+                signinBtn.textContent = 'Sign In with Clerk';
+                signinBtn.disabled = false;
+                signoutBtn.disabled = true;
+                
+                logMessage('User signed out', 'info');
+            }
+        }
+        
+        // Sign in function
+        async function signIn() {
+            if (!clerk) {
+                logMessage('Cannot sign in: Clerk not initialized', 'error');
+                return;
+            }
+            
+            try {
+                logMessage('Opening Clerk sign-in modal...', 'info');
+                await clerk.openSignIn({
+                    afterSignInUrl: window.location.href,
+                    afterSignUpUrl: window.location.href,
+                });
+                logMessage('Sign-in modal opened', 'success');
+            } catch (error) {
+                logMessage(`Sign in failed: ${error.message}`, 'error');
+                console.error('Sign in error:', error);
+            }
+        }
+        
+        // Sign out function
+        async function signOut() {
+            if (!clerk) return;
+            
+            try {
+                logMessage('Signing out...', 'info');
+                await clerk.signOut();
+                logMessage('Signed out successfully', 'success');
+            } catch (error) {
+                logMessage(`Sign out failed: ${error.message}`, 'error');
+                console.error('Sign out error:', error);
+            }
+        }
+        
+        // Event listeners
+        testSdkBtn.addEventListener('click', () => {
+            if (testClerkSDK() && testPublishableKey()) {
+                initializeClerk();
+            }
+        });
+        
+        signinBtn.addEventListener('click', signIn);
+        signoutBtn.addEventListener('click', signOut);
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            logMessage('Page loaded, starting Clerk SDK test...', 'info');
+            
+            // Test SDK immediately
+            const sdkLoaded = testClerkSDK();
+            const keyValid = testPublishableKey();
+            
+            if (sdkLoaded && keyValid) {
+                logMessage('Both SDK and key are valid, initializing Clerk...', 'info');
+                initializeClerk();
+            } else {
+                logMessage('SDK or key issues detected, manual initialization required', 'warn');
+                testSdkBtn.disabled = false;
+            }
+        });
+        
+        // Also try to detect Clerk SDK after a delay (in case it loads slowly)
+        setTimeout(() => {
+            if (typeof window.Clerk !== 'undefined' && !clerk) {
+                logMessage('Clerk SDK detected after delay, auto-initializing...', 'info');
+                if (testPublishableKey()) {
+                    initializeClerk();
+                }
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
