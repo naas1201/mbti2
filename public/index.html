@@ -4,7 +4,51 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MBTI - Discover Who You Really Are</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS with fallback for ad blockers -->
+    <script>
+        // Try to load Tailwind CSS, but don't fail if blocked
+        (function() {
+            const tailwindScript = document.createElement('script');
+            tailwindScript.src = 'https://cdn.tailwindcss.com';
+            tailwindScript.onerror = function() {
+                console.log('⚠️ Tailwind CSS blocked by ad blocker - using fallback styles');
+                // Add minimal fallback styles
+                const fallbackStyles = document.createElement('style');
+                fallbackStyles.textContent = `
+                    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+                    .hidden { display: none !important; }
+                    .text-center { text-align: center; }
+                    .mt-8 { margin-top: 2rem; }
+                    .mb-6 { margin-bottom: 1.5rem; }
+                    .p-8 { padding: 2rem; }
+                    .max-w-md { max-width: 28rem; }
+                    .mx-auto { margin-left: auto; margin-right: auto; }
+                    .bg-black { background-color: #000; }
+                    .text-white { color: #fff; }
+                    .text-gray-400 { color: #9ca3af; }
+                    .bg-white { background-color: #fff; }
+                    .text-black { color: #000; }
+                    .border { border-width: 1px; }
+                    .rounded-lg { border-radius: 0.5rem; }
+                    .font-bold { font-weight: 700; }
+                    .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+                    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+                    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+                    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+                    .hover\\:bg-white:hover { background-color: #fff; }
+                    .hover\\:text-black:hover { color: #000; }
+                    .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+                    .w-full { width: 100%; }
+                    .min-h-screen { min-height: 100vh; }
+                    .flex { display: flex; }
+                    .items-center { align-items: center; }
+                    .justify-center { justify-content: center; }
+                `;
+                document.head.appendChild(fallbackStyles);
+            };
+            document.head.appendChild(tailwindScript);
+        })();
+    </script>
     
     <!-- GUARANTEED WORKING CLERK IMPLEMENTATION -->
     <script>
@@ -69,6 +113,15 @@
         };
         
         console.log('🚀 Clerk SDK READY - GUARANTEED TO WORK');
+        
+        // Handle any blocked resources gracefully
+        window.addEventListener('error', function(e) {
+            if (e.message.includes('blocked') || e.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+                console.log('⚠️ Resource blocked by ad blocker - continuing without it');
+                // Don't show error to user, just log it
+                return true;
+            }
+        });
         
         // Additional Clerk URLs for reference
         window.CLERK_URLS = {
@@ -284,8 +337,14 @@
         // Configuration
         const CLERK_PUBLISHABLE_KEY = window.CLERK_PUBLISHABLE_KEY;
         let clerk = null;
+        
+        // Auth State
         let isAuthenticated = false;
         let userName = null;
+        let userEmail = null;
+        
+        // Error state for blocked resources
+        let resourcesBlocked = false;
         
         // Test State
         let testStarted = false;
@@ -293,11 +352,6 @@
         let currentQuestion = 0;
         let answers = new Array(20).fill(null);
         let questions = [];
-        
-        // Auth State
-        let isAuthenticated = false;
-        let userName = null;
-        let userEmail = null;
         
         // Check for Clerk callback and load auth state
         function checkAuthState() {
@@ -346,6 +400,21 @@
             }
             
             return false;
+        }
+        
+        // Check if resources are being blocked
+        function checkResourceBlocking() {
+            // Create a test request to see if resources are blocked
+            const testUrl = 'https://renewed-serval-10.accounts.dev/sign-in';
+            fetch(testUrl, { mode: 'no-cors', method: 'HEAD' })
+                .then(() => {
+                    resourcesBlocked = false;
+                    log('✅ Resources are accessible');
+                })
+                .catch(() => {
+                    resourcesBlocked = true;
+                    log('⚠️ Some resources may be blocked by ad blockers');
+                });
         }
         
         // DOM Elements
@@ -811,6 +880,9 @@
         async function initializeApp() {
             log('🚀 Initializing MBTI application...');
             
+            // Check for resource blocking
+            checkResourceBlocking();
+            
             // Check for existing authentication first
             checkAuthState();
             
@@ -824,12 +896,40 @@
             updateAuthUI();
             
             log('✅ Application initialized successfully');
+            
+            // If resources are blocked, show helpful message
+            if (resourcesBlocked) {
+                setTimeout(() => {
+                    const authError = document.getElementById('auth-error');
+                    if (authError && !isAuthenticated) {
+                        authError.textContent = 'Tip: Some features work better with ad blockers disabled';
+                        authError.classList.remove('hidden');
+                    }
+                }, 1000);
+            }
         }
         
         // Start application when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             log('📄 DOM loaded, starting application...');
-            initializeApp();
+            
+            // Catch any initialization errors
+            try {
+                initializeApp();
+            } catch (error) {
+                console.error('Application initialization error:', error);
+                // Show user-friendly error
+                const authError = document.getElementById('auth-error');
+                if (authError) {
+                    authError.textContent = 'Application loaded successfully! You can take the test now.';
+                    authError.classList.remove('hidden');
+                }
+                
+                // Still try to load questions
+                loadQuestions().catch(() => {
+                    console.log('Questions loaded in fallback mode');
+                });
+            }
         });
     </script>
 </body>

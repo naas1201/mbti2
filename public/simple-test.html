@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Clerk Test</title>
+    <style>
+        * {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background: #10b98120;
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+        
+        .status.error {
+            background: #ef444420;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+        
+        .status.info {
+            background: #3b82f620;
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .button.primary {
+            background: #fff;
+            color: #000;
+        }
+        
+        .button.primary:hover {
+            background: #f0f0f0;
+        }
+        
+        .button.secondary {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+        }
+        
+        .button.secondary:hover {
+            background: #444;
+        }
+        
+        .url-display {
+            background: #111;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            text-align: left;
+            border: 1px solid #333;
+        }
+        
+        .instructions {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #111;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: left;
+            border: 1px solid #333;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        
+        .instructions ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .instructions li {
+            margin-bottom: 0.5rem;
+        }
+        
+        code {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Clerk Redirect Test</h1>
+        
+        <div id="status" class="status info">
+            Testing Clerk authentication...
+        </div>
+        
+        <div class="url-display" id="current-url">
+            Current URL: <span id="url-text">Loading...</span>
+        </div>
+        
+        <button id="signin-btn" class="button primary">
+            Sign In with Clerk
+        </button>
+        
+        <button id="signup-btn" class="button secondary">
+            Sign Up with Clerk
+        </button>
+        
+        <button id="test-btn" class="button secondary">
+            Test Current URL
+        </button>
+        
+        <div class="instructions">
+            <h3>How this test works:</h3>
+            <ul>
+                <li>Click "Sign In with Clerk" to test the redirect</li>
+                <li>You should be redirected to Clerk's sign-in page</li>
+                <li>After signing in, Clerk will redirect back here</li>
+                <li>The page will detect the <code>?clerk_callback=success</code> parameter</li>
+                <li>If you see "Authentication successful!" then it works</li>
+            </ul>
+            
+            <h3>Expected Clerk URLs:</h3>
+            <ul>
+                <li><strong>Sign In:</strong> <code>https://renewed-serval-10.accounts.dev/sign-in</code></li>
+                <li><strong>Sign Up:</strong> <code>https://renewed-serval-10.accounts.dev/sign-up</code></li>
+                <li><strong>Redirect Back:</strong> Current URL + <code>?clerk_callback=success</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CLERK_DOMAIN = 'renewed-serval-10.accounts.dev';
+        const statusEl = document.getElementById('status');
+        const urlTextEl = document.getElementById('url-text');
+        const signinBtn = document.getElementById('signin-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const testBtn = document.getElementById('test-btn');
+        
+        // Update current URL display
+        function updateUrlDisplay() {
+            urlTextEl.textContent = window.location.href;
+        }
+        
+        // Update status message
+        function updateStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            console.log(`Status: ${message}`);
+        }
+        
+        // Check for Clerk callback
+        function checkForCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('clerk_callback') === 'success') {
+                updateStatus('✅ Authentication successful! Clerk callback detected.', 'success');
+                
+                // Clean URL
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+                updateUrlDisplay();
+                
+                return true;
+            }
+            return false;
+        }
+        
+        // Test if Clerk URL is accessible
+        async function testClerkUrl() {
+            updateStatus('Testing Clerk URL accessibility...', 'info');
+            
+            try {
+                const response = await fetch(`https://${CLERK_DOMAIN}/sign-in`, {
+                    method: 'HEAD',
+                    mode: 'no-cors'
+                });
+                updateStatus('✅ Clerk URL is accessible', 'success');
+                return true;
+            } catch (error) {
+                updateStatus('⚠️ Clerk URL may be blocked by ad blocker', 'error');
+                return false;
+            }
+        }
+        
+        // Redirect to Clerk sign in
+        function redirectToSignIn() {
+            const currentUrl = window.location.href;
+            const redirectUrl = `https://${CLERK_DOMAIN}/sign-in?redirect_url=` + 
+                              encodeURIComponent(currentUrl + '?clerk_callback=success');
+            
+            updateStatus(`Redirecting to: ${redirectUrl}`, 'info');
+            console.log('Redirect URL:', redirectUrl);
+            
+            // Small delay to show message
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 500);
+        }
+        
+        // Redirect to Clerk sign up
+        function redirectToSignUp() {
+            const currentUrl = window.location.href;
+            const redirectUrl = `https://${CLERK_DOMAIN}/sign-up?redirect_url=` + 
+                              encodeURIComponent(currentUrl + '?clerk_callback=success');
+            
+            updateStatus(`Redirecting to: ${redirectUrl}`, 'info');
+            console.log('Redirect URL:', redirectUrl);
+            
+            // Small delay to show message
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 500);
+        }
+        
+        // Initialize
+        function init() {
+            updateUrlDisplay();
+            
+            // Check for callback first
+            if (checkForCallback()) {
+                // Already handled callback
+            } else {
+                updateStatus('Ready to test Clerk authentication', 'info');
+            }
+            
+            // Test Clerk URL
+            testClerkUrl();
+            
+            // Set up event listeners
+            signinBtn.addEventListener('click', redirectToSignIn);
+            signupBtn.addEventListener('click', redirectToSignUp);
+            testBtn.addEventListener('click', () => {
+                updateUrlDisplay();
+                testClerkUrl();
+            });
+            
+            console.log('Simple Clerk Test initialized');
+            console.log('Clerk Domain:', CLERK_DOMAIN);
+            console.log('Current URL:', window.location.href);
+        }
+        
+        // Start when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            if (e.message.includes('blocked') || e.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+                console.log('Resource blocked by ad blocker:', e.message);
+                updateStatus('⚠️ Some resources blocked by ad blocker - but Clerk redirect should still work', 'error');
+                return true;
+            }
+        });
+    </script>
+</body>
+</html>
