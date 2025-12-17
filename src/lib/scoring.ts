@@ -1,8 +1,5 @@
 import { questions } from './questions';
 
-export { calculateMBTI, getDimensionScores, calculateAnswerVariance, getPersonalityDescription };
-export type { DimensionScores, PersonalityDescription };
-
 export interface DimensionScores {
   EI: number;
   SN: number;

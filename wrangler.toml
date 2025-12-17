@@ -19,7 +19,7 @@ binding = "ASSETS"
 directory = "./public"
 not_found_handling = "single-page-application"  # For SPAs
 
-# Environment Variables
+# Development Environment Variables
 [vars]
 CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
 CLERK_SECRET_KEY = "REDACTED_SECRET"
@@ -31,11 +31,21 @@ ENVIRONMENT = "development"
 # Staging Environment
 [env.staging]
 [env.staging.vars]
+CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+CLERK_SECRET_KEY = "REDACTED_SECRET"
+CLERK_DOMAIN = "renewed-serval-10.accounts.dev"
+TURSO_DATABASE_URL = "libsql://mbti-naas1201.aws-ap-northeast-1.turso.io"
+TURSO_AUTH_TOKEN = "REDACTED_SECRET"
 ENVIRONMENT = "staging"
 
 # Production Environment
 [env.production]
 [env.production.vars]
+CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+CLERK_SECRET_KEY = "REDACTED_SECRET"
+CLERK_DOMAIN = "renewed-serval-10.accounts.dev"
+TURSO_DATABASE_URL = "libsql://mbti-naas1201.aws-ap-northeast-1.turso.io"
+TURSO_AUTH_TOKEN = "REDACTED_SECRET"
 ENVIRONMENT = "production"
 
 # Optional: KV Storage (FREE: 100K reads/day, 1K writes/day, 1GB storage)
