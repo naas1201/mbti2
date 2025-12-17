@@ -1,10 +1,22 @@
 {
   "name": "mbti-app",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:prod": "wrangler deploy --env production",
+    "tail": "wrangler tail",
+    "tail:errors": "wrangler tail --status error",
+    "tail:api": "wrangler tail --url /api/",
+    "test": "./test-mbti.sh",
+    "test:health": "./test-mbti.sh health",
+    "test:questions": "./test-mbti.sh questions",
+    "test:submit": "./test-mbti.sh submit",
+    "migrate": "./run-migration.sh",
+    "lint": "tsc --noEmit",
+    "build": "echo 'No build step required for Cloudflare Workers'"
   },
   "dependencies": {
     "hono": "^4.0.0",

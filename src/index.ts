@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { authMiddleware, AuthEnv, AuthContext } from "./middleware/auth";
 import { getDb, Env as DbEnv } from "./db";
-import { calculateMBTI } from "./lib/scoring";
+import { calculateMBTI, getDimensionScores, calculateAnswerVariance, getPersonalityDescription } from "./lib/scoring";
 import { questions } from "./lib/questions";
 import clerkWebhook from "./webhooks/clerk";
 import type { Env } from "./types";
@@ -63,7 +63,20 @@ app.get("/api/questions", (c) => {
       }),
     );
 
-    return c.json({ questions });
+    // Return questions in the format expected by frontend
+    const formattedQuestions = questions.map((q, index) => ({
+      id: q.id,
+      text: q.text,
+      dimension: q.dimension,
+      weight: q.weight,
+      displayOrder: index + 1
+    }));
+
+    return c.json({ 
+      questions: formattedQuestions,
+      total: questions.length,
+      version: "v2.0"
+    });
   } catch (error) {
     console.error("Error in questions endpoint:", error);
 
@@ -97,7 +110,9 @@ app.post("/api/submit-test", authMiddleware, async (c) => {
         }),
       );
 
-      return c.json({ error: "Invalid answers format" }, 400);
+      return c.json({ 
+        error: `Invalid answers format. Expected ${questions.length} answers, got ${answers?.length || 0}` 
+      }, 400);
     }
 
     // Validate all answers are numbers between 1 and 5
@@ -121,8 +136,14 @@ app.post("/api/submit-test", authMiddleware, async (c) => {
       );
     }
 
-    // Calculate MBTI type
+    // Calculate MBTI type with detailed scores
     const mbtiType = calculateMBTI(answers);
+    const dimensionScores = getDimensionScores(answers);
+    
+    // Calculate turbulent/assertive score (based on consistency of answers)
+    const answerVariance = calculateAnswerVariance(answers);
+    const isTurbulent = answerVariance > 2.5; // Higher variance = more turbulent
+    const fullMBTIType = mbtiType + (isTurbulent ? "-T" : "-A");
 
     // Get user ID from auth context
     const userId = c.get("userId");
@@ -141,10 +162,16 @@ app.post("/api/submit-test", authMiddleware, async (c) => {
     if (userResult.rows.length === 0) {
       // User doesn't exist, create them
       const insertUser = await db.execute({
-        sql: "INSERT INTO users (clerk_id, email, created_at) VALUES (?, ?, unixepoch()) RETURNING id",
+        sql: "INSERT INTO users (clerk_id, email, created_at, updated_at) VALUES (?, ?, unixepoch(), unixepoch())",
         args: [userId, "unknown@example.com"], // Email should ideally come from Clerk user data
       });
-      dbUserId = insertUser.rows[0].id as number;
+      
+      // Get the inserted user ID
+      const newUserResult = await db.execute({
+        sql: "SELECT last_insert_rowid() as id",
+        args: [],
+      });
+      dbUserId = newUserResult.rows[0].id as number;
 
       // Track new user creation
       c.executionCtx.waitUntil(
@@ -158,11 +185,58 @@ app.post("/api/submit-test", authMiddleware, async (c) => {
       dbUserId = userResult.rows[0].id as number;
     }
 
-    // Insert test result
+    // Insert test result with detailed scores
     await db.execute({
-      sql: "INSERT INTO test_results (user_id, mbti_type, answers_json, created_at) VALUES (?, ?, ?, unixepoch())",
-      args: [dbUserId, mbtiType, JSON.stringify(answers)],
+      sql: `INSERT INTO test_results (
+        user_id, 
+        test_id, 
+        mbti_type, 
+        ei_score, 
+        sn_score, 
+        tf_score, 
+        jp_score, 
+        answer_variance, 
+        is_turbulent, 
+        answers_json, 
+        is_completed, 
+        completed_at, 
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, unixepoch(), unixepoch())`,
+      args: [
+        dbUserId, 
+        'mbti-v2', 
+        fullMBTIType, 
+        dimensionScores.EI, 
+        dimensionScores.SN, 
+        dimensionScores.TF, 
+        dimensionScores.JP, 
+        answerVariance,
+        isTurbulent,
+        JSON.stringify(answers)
+      ],
     });
+
+    // Get the inserted test result ID
+    const testResult = await db.execute({
+      sql: "SELECT last_insert_rowid() as id",
+      args: [],
+    });
+    
+    const testResultId = testResult.rows[0].id as number;
+
+    // Insert individual user answers
+    for (let i = 0; i < answers.length; i++) {
+      const question = questions[i];
+      await db.execute({
+        sql: `INSERT INTO user_answers (
+          test_result_id, 
+          question_id, 
+          answer_value, 
+          answered_at
+        ) VALUES (?, ?, ?, unixepoch())`,
+        args: [testResultId, question.id, answers[i]],
+      });
+    }
 
     // Track successful test submission
     c.executionCtx.waitUntil(
@@ -173,10 +247,19 @@ app.post("/api/submit-test", authMiddleware, async (c) => {
       }),
     );
 
+    // Get personality description
+    const personalityDescription = getPersonalityDescription(fullMBTIType, dimensionScores);
+    
     return c.json({
       success: true,
-      mbtiType,
-      message: `Your personality type is ${mbtiType}`,
+      mbtiType: fullMBTIType,
+      baseType: mbtiType,
+      dimensionScores,
+      isTurbulent,
+      answerVariance,
+      personalityDescription,
+      message: `Your personality type is ${fullMBTIType}`,
+      detailedMessage: personalityDescription.summary,
     });
   } catch (error) {
     console.error("Error submitting test:", error);
