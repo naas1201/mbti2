@@ -5,9 +5,15 @@ compatibility_date = "2024-01-01"
 [observability]
 enabled = true
 
+# Custom domain configuration
+# Add your subdomain via Cloudflare Dashboard: type.va-n.com
+routes = [
+  { pattern = "type.va-n.com/*", custom_domain = true }
+]
+
 [vars]
 CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
 
-[[assets]]
+[assets]
 binding = "ASSETS"
 directory = "./public"
