@@ -1,0 +1,13 @@
+name = "mbti-app"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[observability]
+enabled = true
+
+[vars]
+CLERK_PUBLISHABLE_KEY = "pk_test_cmVuZXdlZC1zZXJ2YWwtMTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
+
+[[assets]]
+binding = "ASSETS"
+directory = "./public"

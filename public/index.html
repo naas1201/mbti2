@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MBTI - Discover Who You Really Are</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>
+    <script src="/app.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      * {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+      }
+
+      .fade-enter {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      .fade-enter-active {
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
+      }
+
+      .fade-enter-to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body class="bg-black text-white min-h-screen">
+    <div x-data="mbtiApp()" class="container mx-auto px-6 py-12 max-w-4xl">
+      <!-- Header -->
+      <header class="flex justify-between items-center mb-20">
+        <div class="text-sm font-medium tracking-wider">MBTI</div>
+        <button
+          @click="signIn()"
+          x-show="!isAuthenticated"
+          class="text-sm font-medium px-6 py-2 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
+        >
+          Sign in to Save
+        </button>
+        <div x-show="isAuthenticated" class="text-sm font-medium text-white/60">
+          Signed In
+        </div>
+      </header>
+
+      <!-- Hero Section -->
+      <section
+        x-show="!testStarted && !testCompleted"
+        class="text-center mb-32"
+      >
+        <h1
+          class="text-7xl md:text-8xl font-light mb-8 leading-none tracking-tight"
+        >
+          Discover who<br />you really are.
+        </h1>
+        <p class="text-xl text-white/60 mb-12 max-w-2xl mx-auto font-light">
+          20 questions. 5 minutes. A deeper understanding of yourself.
+        </p>
+        <button
+          @click="startTest()"
+          class="bg-white text-black px-12 py-4 text-lg font-medium hover:bg-white/90 transition-all duration-200"
+        >
+          Begin Test
+        </button>
+      </section>
+
+      <!-- Test Section -->
+      <section x-show="testStarted && !testCompleted" class="min-h-[60vh]">
+        <!-- Progress Bar -->
+        <div class="mb-12">
+          <div class="flex justify-between text-sm text-white/40 mb-2">
+            <span
+              >Question <span x-text="currentQuestion + 1"></span> of 20</span
+            >
+            <span
+              x-text="Math.round(((currentQuestion + 1) / 20) * 100) + '%'"
+            ></span>
+          </div>
+          <div class="w-full h-1 bg-white/10">
+            <div
+              class="h-full bg-white transition-all duration-300"
+              :style="`width: ${((currentQuestion + 1) / 20) * 100}%`"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Question -->
+        <div x-show="questions.length > 0" class="mb-16">
+          <template x-for="(question, index) in questions" :key="question.id">
+            <div
+              x-show="currentQuestion === index"
+              x-transition:enter="fade-enter fade-enter-active"
+              x-transition:enter-end="fade-enter-to"
+            >
+              <h2
+                class="text-4xl md:text-5xl font-light mb-16 leading-tight"
+                x-text="question.text"
+              ></h2>
+
+              <!-- Answer Scale -->
+              <div class="space-y-4">
+                <template x-for="value in [1, 2, 3, 4, 5]" :key="value">
+                  <button
+                    @click="selectAnswer(value)"
+                    class="w-full py-6 px-8 text-left border transition-all duration-200 text-lg font-light"
+                    :class="answers[currentQuestion] === value ? 'border-white bg-white text-black' : 'border-white/20 hover:border-white/40'"
+                  >
+                    <span x-text="getAnswerLabel(value)"></span>
+                  </button>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between mt-12">
+          <button
+            @click="previousQuestion()"
+            x-show="currentQuestion > 0"
+            class="px-8 py-3 border border-white/20 hover:bg-white hover:text-black transition-all duration-200"
+          >
+            Previous
+          </button>
+          <div></div>
+        </div>
+      </section>
+
+      <!-- Results Section -->
+      <section
+        x-show="testCompleted"
+        class="text-center min-h-[60vh] flex flex-col justify-center"
+      >
+        <div x-show="loading" class="text-2xl text-white/40 font-light">
+          Analyzing your responses...
+        </div>
+
+        <div x-show="!loading && result">
+          <h2
+            class="text-8xl md:text-9xl font-light mb-8 tracking-tight"
+            x-text="result"
+          ></h2>
+          <p class="text-2xl text-white/60 mb-12 font-light">
+            Your Personality Type
+          </p>
+          <p
+            class="text-lg text-white/40 mb-16 max-w-2xl mx-auto"
+            x-text="resultMessage"
+          ></p>
+
+          <button
+            @click="resetTest()"
+            class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
+          >
+            Take Again
+          </button>
+        </div>
+
+        <div x-show="!loading && error" class="text-center">
+          <p class="text-2xl text-red-400 mb-8" x-text="error"></p>
+          <button
+            @click="resetTest()"
+            class="border border-white/20 px-12 py-4 text-lg font-medium hover:bg-white hover:text-black transition-all duration-200"
+          >
+            Try Again
+          </button>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="mt-32 text-center text-white/40 text-sm font-light">
+        <p>Myers-Briggs Type Indicator Assessment</p>
+      </footer>
+    </div>
+
+    <script>
+      // Initialize Clerk
+      const clerkPubKey = "YOUR_CLERK_PUBLISHABLE_KEY"; // Replace with actual key
+      let clerk;
+
+      async function initializeClerk() {
+        try {
+          clerk = new window.Clerk(clerkPubKey);
+          await clerk.load();
+        } catch (error) {
+          console.error("Failed to initialize Clerk:", error);
+        }
+      }
+
+      initializeClerk();
+
+      function mbtiApp() {
+        return {
+          testStarted: false,
+          testCompleted: false,
+          currentQuestion: 0,
+          answers: [],
+          questions: [],
+          result: null,
+          resultMessage: "",
+          loading: false,
+          error: null,
+          isAuthenticated: false,
+
+          async init() {
+            // Check authentication status
+            if (clerk) {
+              clerk.addListener((state) => {
+                this.isAuthenticated = !!state.user;
+              });
+            }
+
+            // Fetch questions
+            try {
+              const response = await fetch("/api/questions");
+              const data = await response.json();
+              this.questions = data.questions;
+            } catch (error) {
+              console.error("Failed to load questions:", error);
+            }
+          },
+
+          async signIn() {
+            if (clerk) {
+              await clerk.openSignIn();
+            }
+          },
+
+          startTest() {
+            this.testStarted = true;
+            this.answers = new Array(this.questions.length).fill(null);
+          },
+
+          selectAnswer(value) {
+            this.answers[this.currentQuestion] = value;
+
+            // Auto-advance to next question
+            setTimeout(() => {
+              if (this.currentQuestion < this.questions.length - 1) {
+                this.currentQuestion++;
+              } else {
+                this.submitTest();
+              }
+            }, 200);
+          },
+
+          previousQuestion() {
+            if (this.currentQuestion > 0) {
+              this.currentQuestion--;
+            }
+          },
+
+          getAnswerLabel(value) {
+            const labels = {
+              1: "Strongly Disagree",
+              2: "Disagree",
+              3: "Neutral",
+              4: "Agree",
+              5: "Strongly Agree",
+            };
+            return labels[value];
+          },
+
+          async submitTest() {
+            this.testCompleted = true;
+            this.loading = true;
+            this.error = null;
+
+            try {
+              let token = null;
+
+              if (clerk && clerk.session) {
+                token = await clerk.session.getToken();
+              }
+
+              const headers = {
+                "Content-Type": "application/json",
+              };
+
+              if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
+              }
+
+              const response = await fetch("/api/submit-test", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({ answers: this.answers }),
+              });
+
+              if (!response.ok) {
+                throw new Error("Failed to submit test");
+              }
+
+              const data = await response.json();
+              this.result = data.mbtiType;
+              this.resultMessage = data.message;
+            } catch (error) {
+              console.error("Error submitting test:", error);
+              this.error = "Failed to submit your test. Please try again.";
+            } finally {
+              this.loading = false;
+            }
+          },
+
+          resetTest() {
+            this.testStarted = false;
+            this.testCompleted = false;
+            this.currentQuestion = 0;
+            this.answers = [];
+            this.result = null;
+            this.resultMessage = "";
+            this.error = null;
+          },
+        };
+      }
+    </script>
+  </body>
+</html>
