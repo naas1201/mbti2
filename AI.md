@@ -3,9 +3,11 @@
 ## Clerk Authentication Details
 
 ### Clerk Domain & URLs
-- **Clerk Domain**: `renewed-serval-10.clerk.accounts.dev`
-- **Sign-In URL**: `https://renewed-serval-10.clerk.accounts.dev/sign-in`
-- **Sign-Up URL**: `https://renewed-serval-10.clerk.accounts.dev/sign-up`
+- **Clerk Domain**: `renewed-serval-10.accounts.dev`
+- **Sign-In URL**: `https://renewed-serval-10.accounts.dev/sign-in`
+- **Sign-Up URL**: `https://renewed-serval-10.accounts.dev/sign-up`
+- **Unauthorized Sign-In**: `https://renewed-serval-10.accounts.dev/unauthorized-sign-in`
+- **User Profile**: `https://renewed-serval-10.accounts.dev/user`
 - **Account Portal**: `https://renewed-serval-10.accounts.dev/`
 
 ### Publishable Key
@@ -91,22 +93,24 @@ MBTI Personality Test Application built with Cloudflare Workers, Turso database,
 - `GET /api/webhooks/clerk/health` - Webhook health check
 
 ### Clerk URLs (Frontend)
-- **Sign In**: `https://renewed-serval-10.clerk.accounts.dev/sign-in`
-- **Sign Up**: `https://renewed-serval-10.clerk.accounts.dev/sign-up`
+- **Sign In**: `https://renewed-serval-10.accounts.dev/sign-in`
+- **Sign Up**: `https://renewed-serval-10.accounts.dev/sign-up`
+- **Unauthorized Sign-In**: `https://renewed-serval-10.accounts.dev/unauthorized-sign-in`
+- **User Profile**: `https://renewed-serval-10.accounts.dev/user`
 - **Redirect Parameter**: `?redirect_url=[encoded_current_url]?clerk_callback=success`
 - **Callback Detection**: Check for `?clerk_callback=success` in URL
 
 ### Frontend Implementation
 
 #### Clerk Authentication Flow
-1. **User clicks Sign In** → Redirect to `https://renewed-serval-10.clerk.accounts.dev/sign-in?redirect_url=[current_url]?clerk_callback=success`
+1. **User clicks Sign In** → Redirect to `https://renewed-serval-10.accounts.dev/sign-in?redirect_url=[current_url]?clerk_callback=success`
 2. **User authenticates on Clerk domain** → Clerk redirects back with `?clerk_callback=success`
 3. **Page detects callback** → Simulates authenticated state in localStorage
 4. **UI updates** → Shows user info, enables sign out
 
 #### Key Components
 - **Custom Clerk Constructor**: Zero-dependency implementation that always works
-- **Direct Clerk Domain Integration**: Uses `renewed-serval-10.clerk.accounts.dev` directly
+- **Direct Clerk Domain Integration**: Uses `renewed-serval-10.accounts.dev` directly
 - **Local Storage Persistence**: Auth state stored in `clerk-auth-state` key
 - **Callback Handling**: Detects `?clerk_callback=success` parameter
 - **Graceful Degradation**: Full functionality without external dependencies
@@ -158,7 +162,7 @@ MBTI Personality Test Application built with Cloudflare Workers, Turso database,
 - [x] Implement bulletproof Clerk integration (✅ Custom constructor with zero failures)
 - [x] Test authentication flow end-to-end (✅ Guaranteed working implementation)
 - [x] Fix test.html Clerk implementation (✅ Updated with direct Clerk domain redirects)
-- [x] Configure Clerk URLs: `renewed-serval-10.clerk.accounts.dev`
+- [x] Configure Clerk URLs: `renewed-serval-10.accounts.dev`
 - [x] Implement callback handling: `?clerk_callback=success`
 - [x] Add localStorage persistence for auth state
 
@@ -173,7 +177,7 @@ MBTI Personality Test Application built with Cloudflare Workers, Turso database,
 
 ### High Priority
 1. **Deploy to Cloudflare Workers** (✅ Frontend is production-ready with Clerk auth)
-   - Test with Clerk domain: `renewed-serval-10.clerk.accounts.dev`
+   - Test with Clerk domain: `renewed-serval-10.accounts.dev`
    - Verify callback handling: `?clerk_callback=success`
 
 ### Medium Priority
